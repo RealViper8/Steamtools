@@ -34,6 +34,7 @@ pub struct Game {
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Steam {
     pub path: String,
+    pub cfg: PathBuf,
 }
 
 pub fn get_games(path: impl Into<PathBuf>) -> Vec<Game> {
@@ -92,8 +93,8 @@ pub fn get_games(path: impl Into<PathBuf>) -> Vec<Game> {
 }
 
 impl Steam {
-    pub fn new(path: Option<impl Into<String>>) -> Self {
-        let mut steam = Self { path: String::new() };
+    pub fn new(path: Option<impl Into<String> + AsRef<str>>) -> Self {
+        let mut steam = Self { path: String::new(), cfg: PathBuf::new() };
         if let Some(p) = path {
             steam.path = p.into();
         } else {

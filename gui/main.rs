@@ -1,17 +1,9 @@
-use std::{path::{Path, PathBuf}, sync::{Arc, Mutex}, thread};
+use std::{fs, path::{Path, PathBuf}, sync::{Arc, Mutex}, thread};
 
 use egui_extras::install_image_loaders;
 use serde::{Serialize, Deserialize};
 use eframe::egui::{self, FontId, RichText};
 use steamtools::*;
-
-
-// #[cfg(feature="gui")]
-// fn main() {
-//     println!("Burger");
-// }
-
-// #[cfg(not(feature="gui"))]
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 enum State {
@@ -39,7 +31,14 @@ impl App {
         let mut app = App::default();
         if let Some(storage_ref) = cc.storage {
             storage_ref.get_string("steam" ).map(|s| {
+                let mut p = PathBuf::new();
                 app.st = serde_json::from_str::<Steam>(&s).unwrap();
+                if app.st.cfg.to_string_lossy().is_empty() {
+                    p.push(&app.st.path);
+                    p.push("config");
+                    p.push("stplug-in");
+                    app.st.cfg = p;
+                }
             });
 
             storage_ref.get_string("state" ).map(|state| {
@@ -124,32 +123,27 @@ impl eframe::App for App {
                 });
             }
             State::MainMenu => {
-                egui::TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
-                    ui.vertical_centered(|ui| {
-                        if !self.loaded {
-                            ui.label("[ASSETS] Downloading...");
-                        }
+                egui::TopBottomPanel::bottom("status_panel").max_height(30.0).resizable(true).show(ctx, |ui| {
+                    ui.centered_and_justified(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.label("Made by");
+                        ui.hyperlink_to("RealViper", "https://github.com/RealViper8/Steamtools");
+                        });
                     });
                 });
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    // ui.vertical(|ui| {
-                    //     ui.vertical_centered(|ui| {
-                    //         ui.horizontal_top(|ui| {
-                    //             ui.button("Burg");
-                    //             ui.label(RichText::new("SteamTools").font(FontId::proportional(20.0)));
-                    //         });
-                    //     });
 
+                egui::TopBottomPanel::top("top").show(ctx, |ui| {
+                    let width = ui.available_width();
                     ui.vertical(|ui| {
                         ui.horizontal(|ui| {
                             ui.label(RichText::new("Steam Tools").font(FontId::proportional(20.0)));
 
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                if ui.button(RichText::new("⚙").font(FontId::proportional(20.0))).clicked() {
+                                if ui.button(RichText::new("⚙").strong().font(FontId::proportional(20.0))).clicked() {
                                     self.state = State::Settings;
                                 }
 
-                                if ui.button("Fetch").on_hover_text("Fetch manually in case it doesnt Update the List automatically").clicked() {
+                                if ui.button("\u{1F502} Fetch").on_hover_text("Fetch manually in case it doesnt Update the List automatically").clicked() {
                                     self.loaded = false;
                                 }
                             });
@@ -157,57 +151,55 @@ impl eframe::App for App {
 
                         ui.add_space(10.0);
                         ui.horizontal(|ui| {
-                            ui.add_space(8.0);
-                            ui.label("Header Image");
-
-                            ui.add_space(35.0);
-                            ui.label("Game");
-
+                            ui.add_sized([width * 0.4, 25.0], egui::Label::new("Header Image"));
+                            ui.add_sized([width * 0.27, 25.0], egui::Label::new("Game"));
 
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                ui.label("Tools");
+                                ui.add_sized([width * 0.3, 25.0], egui::Label::new("Tools"));
                             });
                         });
+                    });
+                });
 
-                        ui.separator();
-
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.vertical(|ui| {
                         let width = ui.available_width();
                         let height = ui.available_height();
                         egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
-                            // egui::Grid::new("games").striped(false).show(ui, |ui| {
-                            //     for game in self.games.lock().unwrap().iter() {
-                            //         // dbg!(format!("./icons/{}.jpg", game.appid));
-                            //         // ui.image("./icons/242760.jpg");
-                            //         ui.horizontal(|ui| {
-                            //             ui.add_sized([width * 0.4, height * 0.5],
-                            //                 egui::Image::new(format!("file://icons/{}.jpg", game.appid))
-                            //                     // .fit_to_exact_size(egui::vec2(150.0, 150.0))
-                            //             );
-                            //             // ui.label(&game.details.name);
-                            //             ui.add_sized([width * 0.3, height * 0.3], egui::Label::new(&game.details.name));
-                            //             ui.add_sized([width * 0.3, 20.0], egui::Button::new("Delete"));
-                            //         });
+                            egui::Grid::new("games").striped(false).show(ui, |ui| {
+                                for game in self.games.lock().unwrap().iter() {
+                                   ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| { 
+                                        ui.add(
+                                            egui::Image::new(format!("file://icons/{}.jpg", game.appid))
+                                                .fit_to_exact_size(egui::vec2(width * 0.4, height * 0.4))
+                                        );
+                                        ui.add_sized([width * 0.3, height * 0.3], egui::Label::new(RichText::new(&game.details.name).strong()).wrap());
 
+                                        ui.vertical(|ui| {
+                                            let height = ui.available_height();
+                                            if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F5D1} Delete").strong())).clicked() {
+                                                let mut p = PathBuf::from(&self.st.path);
+                                                p.push("config");
+                                                p.push("stplug-in");
+                                                p.push(format!("{}.lua", game.appid));
+                                                if fs::remove_file(p).is_err() {
+                                                    rfd::MessageDialog::new()
+                                                        .set_title("Error")
+                                                        .set_description("Failed to delete")
+                                                        .set_buttons(rfd::MessageButtons::Ok);
+                                                }
 
-                            //         ui.end_row();
-                            //     }
-                            // });
-                            for game in self.games.lock().unwrap().iter() {
-                                ui.horizontal(|ui| {
-                                    ui.add_sized([width * 0.4, height * 0.8],
-                                        egui::Image::new(format!("file://icons/{}.jpg", game.appid))
-                                    );
+                                                self.loaded = false;
+                                            }
+                                            ui.add_sized([width * 0.3, height * 0.3], egui::Button::new("Install"));
+                                            ui.add_sized([width * 0.3, height * 0.3], egui::Button::new("View"));
+                                        });
+                                        ui.add_space(55.0);
+                                    });
 
-                                    ui.add_sized(
-                                        [width * 0.2, height * 0.2],
-                                        egui::Label::new(&game.details.name).wrap()
-                                    );
-
-                                    ui.button("Delete");
-                                });
-
-                                ui.separator();
-                            }
+                                    ui.end_row();
+                                }
+                            });
                         });
                     });
                 });
@@ -232,7 +224,7 @@ impl eframe::App for App {
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         centered: true,
-        viewport: egui::ViewportBuilder::default().with_taskbar(true).with_always_on_top().with_inner_size([520.0, 320.0]).with_min_inner_size([520.0, 320.0]),
+        viewport: egui::ViewportBuilder::default().with_taskbar(true).with_inner_size([520.0, 320.0]).with_min_inner_size([520.0, 320.0]).with_icon(eframe::icon_data::from_png_bytes(include_bytes!("../icon.png")).unwrap()),
         ..Default::default()
     };
 
