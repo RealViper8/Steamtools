@@ -10,6 +10,17 @@ name = "steamtools"
 name = "stcli"
 path = "gui/main.rs"
 
+[profile.release]
+debug = "limited"
+codegen-units = 256
+strip = "debuginfo"
+panic = "abort"
+opt-level = "s"
+incremental = true
+lto = true
+overflow-checks = true
+
+
 [dependencies]
 eframe = { version = "0.33.0", features = ["persistence"] }
 egui_extras = { version = "0.33.0", features = ["all_loaders"] }

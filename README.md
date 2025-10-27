@@ -1,9 +1,28 @@
-# Steamtools
-Steamtools is a Tool written in Rust that lets you view Lua Manifests, delete or install them.
+# 🧰 Steamtools
 
-# TODO
-- [X] Adding Header Image for Lua Manifests
-- [X] Adding Tool (Remove)
-- [X] Adding Tool (Install)
-- [X] Adding Tool (Uninstall)
-- [ ] Adding Tool (View)
+**Steamtools** is a lightweight tool written in **Rust** that allows you to easily **view, install, and remove Lua Manifests**.
+
+---
+
+## 🗓️ TODO
+
+- [x] Add header image for Lua Manifests  
+- [x] Add tool: Remove  
+- [x] Add tool: Install  
+- [x] Add tool: Uninstall  
+- [ ] Add tool: View  
+
+---
+
+## ⚙️ Planned Side Features
+
+- [ ] Add Lua scripting support  
+  - [ ] Create plugins/mods using Lua  
+  - [ ] Add community workshop (database for mods)  
+
+---
+
+**Language:** Rust 🦀  
+**Status:** In active development 🚀
+
+![Steamtools App](image.png)
