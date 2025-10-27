@@ -141,7 +141,7 @@ impl eframe::App for App {
                 });
 
                 egui::Window::new("View").open(&mut self.view.active).show(ctx, |ui| {
-                    ui.vertical_centered_justified(|ui| {
+                    ui.vertical_centered(|ui| {
                         ui.horizontal(|ui| {
                             if ui.button("\u{1F3E0} Home").clicked() { self.view.state = view::ViewState::Main };
                             if ui.button("Requirements").clicked() { self.view.state = view::ViewState::MinimumRequirements };
@@ -150,7 +150,10 @@ impl eframe::App for App {
                     });
                     match self.view.state {
                         view::ViewState::Main => {
-
+                            ui.vertical_centered(|ui| {
+                                ui.label(format!("APPID: {}", self.view.game_id));
+                                ui.label(format!("is_free: {}", self.games.lock().unwrap().get(self.view.current_game).unwrap().details.is_free))
+                            });
                         }
 
                         view::ViewState::MinimumRequirements => {
@@ -247,7 +250,9 @@ impl eframe::App for App {
 
                                             if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F50D} View").strong())).clicked() {
                                                 self.view.requirements = game.details.pc_requirements.as_ref().unwrap().get("minimum").unwrap().to_string();
-                                                self.view.active = !self.view.active;
+                                                self.view.game_id = game.appid;
+                                                self.view.current_game = i;
+                                                self.view.active = true;
                                             }
                                         });
                                         ui.add_space(55.0);
