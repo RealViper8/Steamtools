@@ -1,9 +1,15 @@
+#[cfg_attr(not(debug_assertions), windows_subsystem="windows")]
+
+use std::process;
 use std::{fs, path::{Path, PathBuf}, sync::{Arc, Mutex}, thread};
 
 use egui_extras::install_image_loaders;
 use serde::{Serialize, Deserialize};
-use eframe::egui::{self, FontId, RichText};
+use eframe::egui::{self, FontId, RichText, containers::menu::MenuConfig, style::StyleModifier};
 use steamtools::*;
+
+mod view;
+use view::ViewPopup;
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 enum State {
@@ -13,12 +19,14 @@ enum State {
     Settings,
 }
 
+
 #[derive(Default)]
 struct App {
     st: Steam,
     state: State,
     games: Arc<Mutex<Vec<Game>>>,
     loaded: bool,
+    view: ViewPopup,
 }
 
 impl App {
@@ -123,7 +131,7 @@ impl eframe::App for App {
                 });
             }
             State::MainMenu => {
-                egui::TopBottomPanel::bottom("status_panel").max_height(30.0).resizable(true).show(ctx, |ui| {
+                egui::TopBottomPanel::bottom("status_panel").max_height(30.0).show(ctx, |ui| {
                     ui.centered_and_justified(|ui| {
                         ui.horizontal(|ui| {
                             ui.label("Made by");
@@ -132,11 +140,44 @@ impl eframe::App for App {
                     });
                 });
 
+                egui::Window::new("View").open(&mut self.view.active).show(ctx, |ui| {
+                    ui.vertical_centered_justified(|ui| {
+                        ui.horizontal(|ui| {
+                            if ui.button("\u{1F3E0} Home").clicked() { self.view.state = view::ViewState::Main };
+                            if ui.button("Requirements").clicked() { self.view.state = view::ViewState::MinimumRequirements };
+                            // ui.button("Plugins");
+                        });
+                    });
+                    match self.view.state {
+                        view::ViewState::Main => {
+
+                        }
+
+                        view::ViewState::MinimumRequirements => {
+                            let document = scraper::Html::parse_fragment(&self.view.requirements);
+                            let text = document.root_element().text().collect::<Vec<_>>().join("\n");
+                            ui.add(egui::Label::new(RichText::new(&text)).wrap());
+                        }
+                    }
+                });
+
                 egui::TopBottomPanel::top("top").show(ctx, |ui| {
                     let width = ui.available_width();
                     ui.vertical(|ui| {
                         ui.horizontal(|ui| {
                             ui.label(RichText::new("Steam Tools").font(FontId::proportional(20.0)));
+                            
+                            ui.add_space(15.0);
+
+                            // egui::MenuBar::new().config(MenuConfig::new()).ui(ui, |ui| {
+                            //     if ui.button("About").clicked() {
+                            //         rfd::MessageDialog::new()
+                            //             .set_title("About")
+                            //             .set_description("So this tool is used with the other Steam Tool to give you more power.")
+                            //             .set_buttons(rfd::MessageButtons::Ok)
+                            //             .set_level(rfd::MessageLevel::Info).show();
+                            //     }
+                            // });
 
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                 if ui.button(RichText::new("⚙").strong().font(FontId::proportional(20.0))).clicked() {
@@ -167,7 +208,7 @@ impl eframe::App for App {
                         let height = ui.available_height();
                         egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
                             egui::Grid::new("games").striped(false).show(ui, |ui| {
-                                for game in self.games.lock().unwrap().iter() {
+                                for (i, game) in self.games.lock().unwrap().iter().enumerate() {
                                    ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| { 
                                         ui.add(
                                             egui::Image::new(format!("file://icons/{}.jpg", game.appid))
@@ -177,7 +218,7 @@ impl eframe::App for App {
 
                                         ui.vertical(|ui| {
                                             let height = ui.available_height();
-                                            if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F5D1} Delete").strong())).clicked() {
+                                            if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("Remove").strong())).on_hover_text("Removes the game from your Account").clicked() {
                                                 let mut p = PathBuf::from(&self.st.path);
                                                 p.push("config");
                                                 p.push("stplug-in");
@@ -191,8 +232,23 @@ impl eframe::App for App {
 
                                                 self.loaded = false;
                                             }
-                                            ui.add_sized([width * 0.3, height * 0.3], egui::Button::new("Install"));
-                                            ui.add_sized([width * 0.3, height * 0.3], egui::Button::new("View"));
+
+                                            if game.installed {
+                                                if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F5D1} Uninstall").strong().raised())).clicked() {
+                                                    #[cfg(target_os="windows")]
+                                                    process::Command::new("cmd").args(["/C", &format!("start steam://uninstall/{}", game.appid)]).spawn().expect("Failed to uninstall");
+                                                }
+                                            } else {
+                                                if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{2795} Install").strong().raised())).clicked() {
+                                                    #[cfg(target_os="windows")]
+                                                    process::Command::new("cmd").args(["/C", &format!("start steam://install/{}", game.appid)]).spawn().expect("Failed to install");
+                                                }
+                                            }
+
+                                            if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F50D} View").strong())).clicked() {
+                                                self.view.requirements = game.details.pc_requirements.as_ref().unwrap().get("minimum").unwrap().to_string();
+                                                self.view.active = !self.view.active;
+                                            }
                                         });
                                         ui.add_space(55.0);
                                     });

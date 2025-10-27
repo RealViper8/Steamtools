@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-use std::ffi::{OsStr, OsString};
+use std::collections::{HashMap, HashSet};
 use std::fs::{self, DirBuilder, File};
 use std::io::Write;
-use std::fmt::Write as fmtWriter;
 use std::path::{Path, PathBuf};
 use reqwest::blocking;
 use serde::{Serialize, Deserialize};
@@ -23,12 +21,15 @@ pub struct AppData {
    pub name: String, 
    pub is_free: bool, 
    pub header_image: String,
+
+   pub pc_requirements: Option<HashMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Game {
     pub appid: u32,
     pub details: AppData,
+    pub installed: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -37,10 +38,13 @@ pub struct Steam {
     pub cfg: PathBuf,
 }
 
-pub fn get_games(path: impl Into<PathBuf>) -> Vec<Game> {
+pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
     let mut p = path.into();
     p.push("config");
     p.push("stplug-in");
+
+    let mut gp = path.into();
+    gp.push("steamapps");
 
     let mut games: Vec<Game> = Vec::new();
 
@@ -52,6 +56,27 @@ pub fn get_games(path: impl Into<PathBuf>) -> Vec<Game> {
         }
     };
 
+    let installed: HashSet<u32> = match fs::read_dir(gp) {
+        Ok(entries) => entries,
+        Err(e) => {
+            rfd::MessageDialog::new().set_level(rfd::MessageLevel::Error).set_buttons(rfd::MessageButtons::Ok).set_title("Error").set_description(e.to_string()).show();
+            return games;
+        }
+    }.filter_map(|res| res.ok())
+    .filter(|f| f.path().is_file())
+    .filter_map(|entry| {
+        let fname = entry.file_name().into_string().ok()?;
+        if fname.starts_with("appmanifest_") && fname.ends_with(".acf") {
+            let id_part = &fname["appmanifest_".len()..fname.len() - ".acf".len()];
+            id_part.parse::<u32>().ok()
+        } else {
+            None
+        }
+    })
+    .collect();
+
+    dbg!(&installed);
+
     for entry in entries {
         let entry = match entry {
             Ok(e) => e,
@@ -60,7 +85,7 @@ pub fn get_games(path: impl Into<PathBuf>) -> Vec<Game> {
                 continue;
             }
         };
-
+ 
         let path = entry.path();
         if path.is_file() {
             let appid = path.file_stem().unwrap();
@@ -68,6 +93,8 @@ pub fn get_games(path: impl Into<PathBuf>) -> Vec<Game> {
             let url = format!("{}{}", STEAM_URL, appid.display());
             println!("[FETCHING] {}", appid.display());
             let resp: HashMap<String, GameDetails> = blocking::get(url).ok().unwrap().json().unwrap();
+
+            let installed: bool = installed.contains(&appid.to_string_lossy().parse::<u32>().unwrap());
 
             games.push(Game {
                 appid: appid.to_string_lossy().to_string().parse::<u32>().unwrap(),
@@ -83,6 +110,8 @@ pub fn get_games(path: impl Into<PathBuf>) -> Vec<Game> {
                     } else {
                         AppData::default()
                     },
+
+                installed,
                 
                 ..Default::default() 
             });
