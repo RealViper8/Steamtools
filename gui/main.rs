@@ -1,11 +1,11 @@
 #[cfg_attr(not(debug_assertions), windows_subsystem="windows")]
 
 use std::process;
-use std::{fs, path::{Path, PathBuf}, sync::{Arc, Mutex}, thread};
+use std::{fs, path::PathBuf, sync::{Arc, Mutex}, thread};
 
 use egui_extras::install_image_loaders;
 use serde::{Serialize, Deserialize};
-use eframe::egui::{self, FontId, RichText, containers::menu::MenuConfig, style::StyleModifier};
+use eframe::egui::{self, FontId, RichText};
 use steamtools::*;
 
 mod view;
