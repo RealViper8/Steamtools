@@ -212,11 +212,12 @@ impl eframe::App for App {
                         egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
                             egui::Grid::new("games").striped(false).show(ui, |ui| {
                                 for (i, game) in self.games.lock().unwrap().iter().enumerate() {
-                                   ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| { 
+                                   ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                                         ui.add(
                                             egui::Image::new(format!("file://icons/{}.jpg", game.appid))
                                                 .fit_to_exact_size(egui::vec2(width * 0.4, height * 0.4))
                                         );
+                                        ctx.request_repaint();
                                         ui.add_sized([width * 0.3, height * 0.3], egui::Label::new(RichText::new(&game.details.name).strong()).wrap());
 
                                         ui.vertical(|ui| {
@@ -264,7 +265,6 @@ impl eframe::App for App {
                         });
                     });
                 });
-
 
                 if !self.loaded {
                     let s = self.st.path.clone();
