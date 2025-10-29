@@ -2,9 +2,13 @@ use std::collections::{HashMap, HashSet};
 use std::fs::{self, DirBuilder, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::ptr;
 use reqwest::blocking;
 use serde::{Serialize, Deserialize};
 
+use crate::st::{Lua, init_lua};
+
+pub mod st;
 
 const STEAM_URL: &str = "https://store.steampowered.com/api/appdetails?appids=";
 

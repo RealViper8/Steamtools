@@ -19,7 +19,6 @@ enum State {
     Settings,
 }
 
-
 #[derive(Default)]
 struct App {
     st: Steam,

@@ -16,9 +16,7 @@
 
 ## ⚙️ Planned Side Features
 
-- [ ] Add Lua scripting support  
-  - [ ] Create plugins/mods using Lua  
-  - [ ] Add community workshop (database for mods)  
+- [ ] Add MelonModLoader support
 
 ---
 
