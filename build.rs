@@ -1,5 +1,3 @@
-use std::{fs, path::Path};
-
 use cc::Build;
 
 fn main() {
