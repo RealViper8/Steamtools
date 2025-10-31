@@ -2,3 +2,8 @@
 /icons
 /build
 Cargo.lock
+ctest.py
+/venv
+steam.bin
+/MelonLoader
+/mods
