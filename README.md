@@ -11,6 +11,7 @@
 - [x] Add tool: Install  
 - [x] Add tool: Uninstall  
 - [ ] Add tool: View  
+- [X] Add Window: Settings (experimental)
 
 ---
 
