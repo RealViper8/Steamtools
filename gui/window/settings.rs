@@ -1,5 +1,7 @@
+use serde::{Deserialize, Serialize};
 
-#[derive(Default)]
+
+#[derive(Deserialize, Serialize, Default)]
 pub struct Settings {
-    pub _active: bool
+    pub mod_experimental: bool,
 }

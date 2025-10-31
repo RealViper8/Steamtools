@@ -9,9 +9,9 @@ use eframe::egui::{self, FontId, RichText};
 use steamtools::*;
 
 mod window;
-use window::{ModsPopup, ViewPopup, ViewState};
+use window::{ModsPopup, ViewPopup, ViewState, Settings};
 
-#[derive(Deserialize, Serialize, Debug, Default)]
+#[derive(Deserialize, Serialize, Debug, Default, PartialEq)]
 enum State {
     #[default]    
     Setup,
@@ -21,12 +21,10 @@ enum State {
 
 const STEAM_BINARY_PATH: &str = "steam.bin";
 
-// mod settings;
-// use settings::Settings;
-
 #[derive(Default)]
 struct App {
     st: Steam,
+    settings: Settings,
     state: State,
     games: Arc<Mutex<Vec<Game>>>,
     cached_games: GameMap,
@@ -165,6 +163,10 @@ impl App {
                 app.games = serde_json::from_str::<Arc<Mutex<Vec<Game>>>>(&games).unwrap();
                 app.loaded = true;
             });
+
+            storage_ref.get_string("settings" ).map(|settings| {
+                app.settings = serde_json::from_str(&settings).unwrap();
+            });
         }
 
         app
@@ -174,8 +176,13 @@ impl App {
 impl eframe::App for App {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         storage.set_string("steam", serde_json::to_string(&self.st).unwrap());
-        storage.set_string("state", serde_json::to_string(&self.state).unwrap());
+        if self.state != State::Setup {
+            storage.set_string("state", serde_json::to_string(&State::MainMenu).unwrap());
+        } else {
+            storage.set_string("state", serde_json::to_string(&self.state).unwrap());
+        }
         storage.set_string("games", serde_json::to_string(&self.games).unwrap());
+        storage.set_string("settings", serde_json::to_string(&self.settings).unwrap());
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -223,8 +230,11 @@ impl eframe::App for App {
             }
             State::Settings => {
                 egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.label(RichText::new("Settings").font(FontId::proportional(20.0)));
+                    ui.vertical(|ui| {
+                        ui.vertical_centered(|ui| {
+                            ui.label(RichText::new("Settings").font(FontId::proportional(20.0)));
+                        });
+                        ui.checkbox(&mut self.settings.mod_experimental, "Mods feature (Experimental)")
                     });
                 });
 
@@ -327,22 +337,12 @@ impl eframe::App for App {
                             
                             ui.add_space(15.0);
 
-                            // egui::MenuBar::new().config(MenuConfig::new()).ui(ui, |ui| {
-                            //     if ui.button("About").clicked() {
-                            //         rfd::MessageDialog::new()
-                            //             .set_title("About")
-                            //             .set_description("So this tool is used with the other Steam Tool to give you more power.")
-                            //             .set_buttons(rfd::MessageButtons::Ok)
-                            //             .set_level(rfd::MessageLevel::Info).show();
-                            //     }
-                            // });
-
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                 if ui.button(RichText::new("⚙").strong().font(FontId::proportional(20.0))).clicked() {
                                     self.state = State::Settings;
                                 }
 
-                                if ui.button("\u{1F502} Mods").on_hover_text("Explore Mods").clicked() {
+                                if self.settings.mod_experimental && ui.button("\u{1F502} Mods").on_hover_text("Explore Mods").clicked() {
                                     self.mods.active = !self.mods.active;
                                 }
 
