@@ -16,7 +16,7 @@
 
 ## ⚙️ Planned Side Features
 
-- [ ] Add MelonModLoader support
+- [X] Add MelonModLoader support
 
 ---
 
