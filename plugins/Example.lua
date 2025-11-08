@@ -1,0 +1,2 @@
+-- Example plugin
+print(download("https://imgs.search.brave.com/ZPCpYivPdglLUibc1k4CrChFCQJfp_ZOJ0LdjUyVPzc/rs:fit:0:180:1:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wMjcv/NTY0LzgxMC9zbWFs/bC9ob3QtYW5kLWRl/bGljaW91cy1idXJn/ZXJzLWFuZC1sZXR0/dWNlLWNodW5rcy10/b3BwZWQtd2l0aC1z/YXVjZS1oYW1idXJn/ZXItZ2VuZXJhdGl2/ZS1haS1mcmVlLXBo/b3RvLmpwZw", "burger.jpg"))

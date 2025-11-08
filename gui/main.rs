@@ -5,11 +5,11 @@ use std::{collections::HashMap, fs::{self, File}, io::{self, BufReader, BufWrite
 
 use egui_extras::install_image_loaders;
 use serde::{Serialize, Deserialize};
-use eframe::egui::{self, FontId, RichText};
-use steamtools::*;
+use eframe::egui::{self, FontId, Label, RichText};
+use steamtools::{st::run_lua_file, *};
 
 mod window;
-use window::{ModsPopup, ViewPopup, ViewState, Settings};
+use window::{ModsPopup, ViewPopup, ViewState, Settings, Plugins, Plugin};
 
 #[derive(Deserialize, Serialize, Debug, Default, PartialEq)]
 enum State {
@@ -31,6 +31,7 @@ struct App {
     loaded: bool,
     view: ViewPopup,
     mods: ModsPopup,
+    plugins: Plugins,
     // settings: Settings,
 }
 
@@ -234,7 +235,8 @@ impl eframe::App for App {
                         ui.vertical_centered(|ui| {
                             ui.label(RichText::new("Settings").font(FontId::proportional(20.0)));
                         });
-                        ui.checkbox(&mut self.settings.mod_experimental, "Mods feature (Experimental)")
+                        ui.checkbox(&mut self.settings.mod_experimental, "Mods feature (Experimental)");
+                        ui.checkbox(&mut self.settings.plugins_experimental, "Plugins feature (Experimental)")
                     });
                 });
 
@@ -263,7 +265,6 @@ impl eframe::App for App {
                         ui.horizontal(|ui| {
                             if ui.button("\u{1F3E0} Home").clicked() { self.view.state = ViewState::Main };
                             if ui.button("Requirements").clicked() { self.view.state = ViewState::MinimumRequirements };
-                            // ui.button("Plugins");
                         });
                     });
                     match self.view.state {
@@ -282,6 +283,45 @@ impl eframe::App for App {
                     }
                 });
 
+
+                       
+                egui::Window::new("Plugins").default_size([0.0, 700.0]).open(&mut self.plugins.active).show(ctx, |ui| {
+                    if !self.plugins.fetched {
+                        let dirs = fs::read_dir("./plugins").unwrap();
+                        for dir in dirs {
+                            match dir {
+                                Ok(d) => {
+                                    self.plugins.list.push(Plugin {
+                                        code: fs::read_to_string(d.path()).unwrap(),
+                                        name: d.path().file_stem().unwrap().to_string_lossy().to_string(),
+                                    });
+                                },
+                                Err(_) => () 
+                            }
+                            self.plugins.fetched = true;
+                        }
+                    }
+
+                    ui.vertical_centered(|ui| {
+                        egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
+                            for plugin in &mut self.plugins.list {
+                                ui.group(|ui| {
+                                    ui.vertical_centered(|ui| {
+                                        ui.add(Label::new(RichText::new(&plugin.name).font(FontId::proportional(20.0)).strong()).wrap_mode(egui::TextWrapMode::Truncate));
+                                    });
+
+                                    if ui.button("View/Edit").clicked() {
+                                        self.plugins.ceditor = true;
+                                    }
+                                    
+                                    if ui.button("Start").clicked() {
+                                        run_lua_file(format!("./plugins/{}.lua", plugin.name));
+                                    }
+                                });
+                            }
+                        });
+                    });
+                });
 
                 egui::Window::new("Mods").default_size([0.0, 0.0]).open(&mut self.mods.active).show(ctx, |ui| {
                     ui.vertical_centered(|ui| {
@@ -344,6 +384,10 @@ impl eframe::App for App {
 
                                 if self.settings.mod_experimental && ui.button("\u{1F502} Mods").on_hover_text("Explore Mods").clicked() {
                                     self.mods.active = !self.mods.active;
+                                }
+
+                                if self.settings.plugins_experimental && ui.button("\u{1F50C} Plugins").on_hover_text("Explore Plugins").clicked() {
+                                    self.plugins.active = !self.plugins.active;
                                 }
 
                                 if ui.button("\u{1F502} Fetch").on_hover_text("Fetch manually in case it doesnt Update the List automatically").clicked() {
