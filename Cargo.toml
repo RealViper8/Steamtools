@@ -21,7 +21,8 @@ overflow-checks = true
 
 
 [dependencies]
-eframe = { version = "0.33.0", features = ["persistence"] }
+eframe = { version = "0.33.0", features = ["wgpu", "persistence"] }
+egui_code_editor = "0.2.20"
 egui_extras = { version = "0.33.0", features = ["all_loaders"] }
 image = { version = "0.25.8", features = ["jpeg"] }
 reqwest = { version = "0.12.24", features = ["json","blocking"] }
@@ -29,9 +30,11 @@ rfd = "0.15.4"
 scraper = "0.24.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
+tree-sitter = "0.25.10"
+tree-sitter-lua = "0.2.0"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1.12"
 
 [build-dependencies]
-cc = "1.2.43"
+cc = "1.2.45"
