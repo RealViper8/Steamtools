@@ -3,15 +3,16 @@
 use std::process;
 use std::{collections::HashMap, fs::{self, File}, io::{self, BufReader, BufWriter, Read, Write}, path::{Path, PathBuf}, sync::{Arc, Mutex}, thread};
 
+use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
 use egui_extras::install_image_loaders;
 use serde::{Serialize, Deserialize};
-use eframe::egui::{self, FontId, RichText};
-use steamtools::*;
+use eframe::egui::{self, FontId, Label, RichText};
+use steamtools::{st::run_lua_file, *};
 
 mod window;
-use window::{ModsPopup, ViewPopup, ViewState};
+use window::{ModsPopup, ViewPopup, ViewState, Settings, Plugins, Plugin};
 
-#[derive(Deserialize, Serialize, Debug, Default)]
+#[derive(Deserialize, Serialize, Debug, Default, PartialEq)]
 enum State {
     #[default]    
     Setup,
@@ -21,18 +22,17 @@ enum State {
 
 const STEAM_BINARY_PATH: &str = "steam.bin";
 
-// mod settings;
-// use settings::Settings;
-
 #[derive(Default)]
 struct App {
     st: Steam,
+    settings: Settings,
     state: State,
     games: Arc<Mutex<Vec<Game>>>,
     cached_games: GameMap,
     loaded: bool,
     view: ViewPopup,
     mods: ModsPopup,
+    plugins: Plugins,
     // settings: Settings,
 }
 
@@ -165,6 +165,10 @@ impl App {
                 app.games = serde_json::from_str::<Arc<Mutex<Vec<Game>>>>(&games).unwrap();
                 app.loaded = true;
             });
+
+            storage_ref.get_string("settings" ).map(|settings| {
+                app.settings = serde_json::from_str(&settings).unwrap();
+            });
         }
 
         app
@@ -174,8 +178,13 @@ impl App {
 impl eframe::App for App {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         storage.set_string("steam", serde_json::to_string(&self.st).unwrap());
-        storage.set_string("state", serde_json::to_string(&self.state).unwrap());
+        if self.state != State::Setup {
+            storage.set_string("state", serde_json::to_string(&State::MainMenu).unwrap());
+        } else {
+            storage.set_string("state", serde_json::to_string(&self.state).unwrap());
+        }
         storage.set_string("games", serde_json::to_string(&self.games).unwrap());
+        storage.set_string("settings", serde_json::to_string(&self.settings).unwrap());
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -223,8 +232,12 @@ impl eframe::App for App {
             }
             State::Settings => {
                 egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.label(RichText::new("Settings").font(FontId::proportional(20.0)));
+                    ui.vertical(|ui| {
+                        ui.vertical_centered(|ui| {
+                            ui.label(RichText::new("Settings").font(FontId::proportional(20.0)));
+                        });
+                        ui.checkbox(&mut self.settings.mod_experimental, "Mods feature (Experimental)");
+                        ui.checkbox(&mut self.settings.plugins_experimental, "Plugins feature (Experimental)")
                     });
                 });
 
@@ -253,7 +266,6 @@ impl eframe::App for App {
                         ui.horizontal(|ui| {
                             if ui.button("\u{1F3E0} Home").clicked() { self.view.state = ViewState::Main };
                             if ui.button("Requirements").clicked() { self.view.state = ViewState::MinimumRequirements };
-                            // ui.button("Plugins");
                         });
                     });
                     match self.view.state {
@@ -272,6 +284,87 @@ impl eframe::App for App {
                     }
                 });
 
+                if self.plugins.ceditor {
+                    ctx.show_viewport_immediate(
+                        egui::ViewportId::from_hash_of("immediate_code_editor"),
+                        egui::ViewportBuilder::default()
+                            .with_title("Code Editor")
+                            .with_inner_size([320.0, 150.0])
+                            .with_min_inner_size([320.0, 150.0]),
+                        |ctx, _class| {
+                        egui::TopBottomPanel::top("menu").show(ctx, |ui| {
+                            ui.horizontal(|ui| {
+                                if ui.button("Save").clicked() || ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::S)) {
+                                    fs::write(format!("./plugins/{}.lua", &self.plugins.get_selected().unwrap().name), self.plugins.get_selected().unwrap().code.as_bytes()).unwrap();
+                                }
+                            });
+                        });
+
+                        egui::CentralPanel::default().show(ctx, |ui| {
+                            let viewport_size = ctx.available_rect().size();
+                            ui.vertical(|ui| {
+                                let syntax: Syntax = Syntax::lua();
+                                CodeEditor::default()
+                                    .with_syntax(syntax)
+                                    .with_theme(ColorTheme::GITHUB_DARK)
+                                    .desired_width(viewport_size.x)
+                                    .with_rows((viewport_size.y / 14.0) as usize)
+                                    .show(ui, &mut self.plugins.list[self.plugins.selected_plugin.unwrap()].code);
+                            });
+                        });
+
+                        if ctx.input(|i| i.viewport().close_requested()) {
+                            self.plugins.ceditor = false;
+                        }
+                    });
+                }
+
+                egui::Window::new("Plugins").default_size([0.0, 0.0]).open(&mut self.plugins.active).show(ctx, |ui| {
+                    if !self.plugins.fetched {
+                        if !Path::new("./plugins").exists() {fs::create_dir("./plugins").unwrap()}
+                        let dirs = fs::read_dir("./plugins").unwrap();
+                        for dir in dirs {
+                            match dir {
+                                Ok(d) => {
+                                    self.plugins.list.push(Plugin {
+                                        code: fs::read_to_string(d.path()).unwrap(),
+                                        name: d.path().file_stem().unwrap().to_string_lossy().to_string(),
+                                    });
+                                },
+                                Err(_) => () 
+                            }
+                            self.plugins.fetched = true;
+                        }
+                    }
+
+                    if self.plugins.list.is_empty() {
+                        ui.centered_and_justified(|ui| {
+                            ui.add(Label::new(RichText::new("No plugins found !").font(FontId::proportional(15.0)).strong()).wrap_mode(egui::TextWrapMode::Extend));
+                        });
+                        return;
+                    } 
+
+                    ui.vertical_centered(|ui| {
+                        egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
+                            for (i, plugin) in self.plugins.list.iter_mut().enumerate() {
+                                ui.group(|ui| {
+                                    ui.vertical_centered(|ui| {
+                                        ui.add(Label::new(RichText::new(&plugin.name).font(FontId::proportional(20.0)).strong()).wrap_mode(egui::TextWrapMode::Truncate));
+                                    });
+
+                                    if ui.button("View/Edit").clicked() {
+                                        self.plugins.selected_plugin = Some(i);
+                                        self.plugins.ceditor = true;
+                                    }
+                                    
+                                    if ui.button("Start").clicked() {
+                                        run_lua_file(format!("./plugins/{}.lua", &mut plugin.name));
+                                    }
+                                });
+                            }
+                        });
+                    });
+                });
 
                 egui::Window::new("Mods").default_size([0.0, 0.0]).open(&mut self.mods.active).show(ctx, |ui| {
                     ui.vertical_centered(|ui| {
@@ -327,16 +420,6 @@ impl eframe::App for App {
                             
                             ui.add_space(15.0);
 
-                            // egui::MenuBar::new().config(MenuConfig::new()).ui(ui, |ui| {
-                            //     if ui.button("About").clicked() {
-                            //         rfd::MessageDialog::new()
-                            //             .set_title("About")
-                            //             .set_description("So this tool is used with the other Steam Tool to give you more power.")
-                            //             .set_buttons(rfd::MessageButtons::Ok)
-                            //             .set_level(rfd::MessageLevel::Info).show();
-                            //     }
-                            // });
-
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                 if ui.button(RichText::new("⚙").strong().font(FontId::proportional(20.0))).clicked() {
                                     self.state = State::Settings;
@@ -344,6 +427,14 @@ impl eframe::App for App {
 
                                 if ui.button("\u{1F502} Mods").on_hover_text("Explore Mods").clicked() {
                                     self.mods.active = !self.mods.active;
+                                }
+
+                                if self.settings.mod_experimental && ui.button("\u{1F502} Mods").on_hover_text("Explore Mods").clicked() {
+                                    self.mods.active = !self.mods.active;
+                                }
+
+                                if self.settings.plugins_experimental && ui.button("\u{1F50C} Plugins").on_hover_text("Explore Plugins").clicked() {
+                                    self.plugins.active = !self.plugins.active;
                                 }
 
                                 if ui.button("\u{1F502} Fetch").on_hover_text("Fetch manually in case it doesnt Update the List automatically").clicked() {
@@ -371,11 +462,12 @@ impl eframe::App for App {
                         egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
                             egui::Grid::new("games").striped(false).show(ui, |ui| {
                                 for (i, game) in self.games.lock().unwrap().iter().enumerate() {
-                                   ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| { 
+                                   ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                                         ui.add(
                                             egui::Image::new(format!("file://icons/{}.jpg", game.appid))
                                                 .fit_to_exact_size(egui::vec2(width * 0.4, height * 0.4))
                                         );
+                                        ctx.request_repaint();
                                         ui.add_sized([width * 0.3, height * 0.3], egui::Label::new(RichText::new(&game.details.name).strong()).wrap());
 
                                         ui.vertical(|ui| {
@@ -423,7 +515,6 @@ impl eframe::App for App {
                         });
                     });
                 });
-
 
                 if !self.loaded {
                     let s = self.st.path.clone();

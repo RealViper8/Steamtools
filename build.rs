@@ -8,6 +8,7 @@ fn main() {
         res.compile().expect("Failed to embedd icon !");
     }
 
+
     Build::new()
         .file("lua/lapi.c")
         .file("lua/lauxlib.c")
@@ -44,7 +45,4 @@ fn main() {
         .file("src/st.c")
         .include("lua")
         .compile("lua");
-
-    println!("cargo:rerun-if-changed=src/st.c");
-    println!("cargo:rerun-if-changed=lua");
 }

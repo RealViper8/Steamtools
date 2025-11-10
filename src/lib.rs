@@ -190,7 +190,15 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
 
             let url = format!("{}{}", STEAM_URL, appid.display());
             println!("[FETCHING] {}", appid.display());
-            let resp: HashMap<String, GameDetails> = blocking::get(url).ok().unwrap().json().unwrap();
+            let resp: HashMap<String, GameDetails> = match blocking::get(url).ok().unwrap().json() {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("[FETCHING ERROR] {}", e);
+                    continue;
+                }
+            };
+
+            // let installed: bool = installed.contains(&appid.to_string_lossy().parse::<u32>().unwrap());
             let installed_val: bool = installed.contains_key(appid_i);
 
             games.push(Game {
