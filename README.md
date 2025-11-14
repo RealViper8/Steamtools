@@ -18,7 +18,7 @@
 ## ⚙️ Planned Side Features
 
 - [X] Add MelonModLoader support
-- [ ] Add Lua Plugin support
+- [X] Add Lua Plugin support
 
 ---
 
