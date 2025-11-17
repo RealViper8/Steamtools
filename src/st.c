@@ -17,18 +17,37 @@ typedef struct {
 /// @return 
 extern int download(lua_State* L);
 
-void run_lua_file(char* filename) {
+static int stop_flag = 0;
+
+void set_flag(int val) {
+    stop_flag = val;
+}
+
+int get_flag() {
+    return stop_flag;
+}
+
+void hook(lua_State *L, lua_Debug *ar) {
+    if (stop_flag == 1) {
+        luaL_error(L, "Execution stopped by user");
+    }
+}
+
+int run_lua_file(char* filename) {
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
     lua_pushcfunction(L, download);
     lua_setglobal(L, "download");
+    lua_sethook(L, hook, LUA_MASKCOUNT, 1000);
 
     if (luaL_dofile(L, filename)) {
-        fprintf(stderr, "Couldn't run file: %s\n", lua_tostring(L, -1));
-        exit(1);
+        printf("Couldn't run file: %s\n", lua_tostring(L, -1));
+        fflush(stdout);
+        return 1;
     }
     
     lua_close(L);
+    return 0;
 }
 
 void load_lua_file(char* filename) {

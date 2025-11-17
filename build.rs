@@ -45,4 +45,6 @@ fn main() {
         .file("src/st.c")
         .include("lua")
         .compile("lua");
+
+    println!("cargo:rerun-if-changed=src/st.c")
 }

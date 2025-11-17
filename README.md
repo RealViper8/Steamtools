@@ -10,7 +10,7 @@
 - [x] Add tool: Remove  
 - [x] Add tool: Install  
 - [x] Add tool: Uninstall  
-- [ ] Add tool: View  
+- [X] Add tool: View  
 - [X] Add Window: Settings (experimental)
 
 ---
@@ -18,11 +18,14 @@
 ## ⚙️ Planned Side Features
 
 - [X] Add MelonModLoader support
-- [ ] Add Lua Plugin support
+- [X] Add Lua Plugin support
+  - [X] Basic Support (1 active running plugin)
+  - [X] Code Editor (supports syntax highlighting)
+  - [ ] Being able to run more then 1 script (on diffrent threads)
 
 ---
 
-**Language:** Rust 🦀  
+**Language:** Rust 🦀
 **Status:** In active development 🚀
 
 ![Steamtools App](image.png)
