@@ -7,7 +7,7 @@ use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
 use egui_extras::install_image_loaders;
 use serde::{Serialize, Deserialize};
 use eframe::egui::{self, FontId, Label, RichText};
-use steamtools::{st::run_lua_file, *};
+use steamtools::{st::{run_lua_file, start_file, stop_file}, *};
 
 mod window;
 use window::{ModsPopup, ViewPopup, ViewState, Settings, Plugins, Plugin};
@@ -294,11 +294,32 @@ impl eframe::App for App {
                         |ctx, _class| {
                         egui::TopBottomPanel::top("menu").show(ctx, |ui| {
                             ui.horizontal(|ui| {
-                                if ui.button("Save").clicked() || ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::S)) {
-                                    fs::write(format!("./plugins/{}.lua", &self.plugins.get_selected().unwrap().name), self.plugins.get_selected().unwrap().code.as_bytes()).unwrap();
+                                let len = self.plugins.list.len();
+                                if ui.button("\u{1F5D1}").clicked() {
+                                    if let Err(e) = fs::remove_file(format!("./plugins/{}.lua", self.plugins.list.remove(self.plugins.get().unwrap()).name.lock().unwrap())) {
+                                        eprintln!("{}", e);
+                                    }
+                                    if len == 1 {
+                                        self.plugins.ceditor = false;
+                                        return;
+                                    };
                                 }
+
+                                if ui.button("Save").clicked() || ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::S)) {
+                                    fs::rename(format!("./plugins/{}.lua", &self.plugins.get_selected().unwrap().name.lock().unwrap()), format!("./plugins/{}.lua",&self.plugins.get_selected().unwrap().name_buffer)).ok();
+                                    fs::write(format!("./plugins/{}.lua", &self.plugins.get_selected().unwrap().name_buffer), self.plugins.get_selected().unwrap().code.as_bytes()).unwrap();
+                                    // *self.plugins.list.get_mut(self.plugins.selected_plugin.unwrap()).unwrap().name.lock().unwrap() = self.plugins.get_selected().unwrap().name_buffer.clone();
+                                    // self.plugins.list.remove(self.plugins.selected_plugin.unwrap());
+                                    *self.plugins.list.get_mut(self.plugins.selected_plugin.unwrap()).unwrap().name.lock().unwrap() = self.plugins.get_selected().unwrap().name_buffer.clone();
+                                }
+
+                                ui.text_edit_singleline(&mut self.plugins.get_selected().unwrap().name_buffer);
                             });
                         });
+
+                        if !self.plugins.ceditor {
+                            return;
+                        }
 
                         egui::CentralPanel::default().show(ctx, |ui| {
                             let viewport_size = ctx.available_rect().size();
@@ -328,7 +349,9 @@ impl eframe::App for App {
                                 Ok(d) => {
                                     self.plugins.list.push(Plugin {
                                         code: fs::read_to_string(d.path()).unwrap(),
-                                        name: d.path().file_stem().unwrap().to_string_lossy().to_string(),
+                                        name: Arc::new(Mutex::new(d.path().file_stem().unwrap().to_string_lossy().to_string())),
+                                        name_buffer: d.path().file_stem().unwrap().to_string_lossy().to_string(),
+                                        ..Default::default()
                                     });
                                 },
                                 Err(_) => () 
@@ -339,26 +362,50 @@ impl eframe::App for App {
 
                     if self.plugins.list.is_empty() {
                         ui.centered_and_justified(|ui| {
-                            ui.add(Label::new(RichText::new("No plugins found !").font(FontId::proportional(15.0)).strong()).wrap_mode(egui::TextWrapMode::Extend));
+                            // ui.add(Label::new(RichText::new("No plugins found !").font(FontId::proportional(15.0)).strong()).wrap_mode(egui::TextWrapMode::Extend));
+                            if ui.button("Add new plugin").clicked() {
+                                let mut dir = std::env::current_dir().unwrap();
+                                dir.push("plugins");
+                                let plugin = rfd::FileDialog::default()
+                                    .set_directory(dir)
+                                    .set_file_name("plugin.lua")
+                                    .add_filter("Lua File", &[".lua"])
+                                    .save_file();
+
+                                if let Some(f) = plugin {
+                                    fs::File::create(f).unwrap();
+                                }
+
+                                self.plugins.fetched = false;
+                            }
                         });
                         return;
                     } 
 
                     ui.vertical_centered(|ui| {
                         egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
-                            for (i, plugin) in self.plugins.list.iter_mut().enumerate() {
+                            for (i, plugin) in self.plugins.list.iter().enumerate() {
                                 ui.group(|ui| {
                                     ui.vertical_centered(|ui| {
-                                        ui.add(Label::new(RichText::new(&plugin.name).font(FontId::proportional(20.0)).strong()).wrap_mode(egui::TextWrapMode::Truncate));
+                                        ui.add(Label::new(RichText::new(plugin.name.lock().unwrap().as_str()).font(FontId::proportional(20.0)).strong()).wrap_mode(egui::TextWrapMode::Truncate));
                                     });
-
+                                    
                                     if ui.button("View/Edit").clicked() {
                                         self.plugins.selected_plugin = Some(i);
                                         self.plugins.ceditor = true;
                                     }
-                                    
+
                                     if ui.button("Start").clicked() {
-                                        run_lua_file(format!("./plugins/{}.lua", &mut plugin.name));
+                                        // Resetting the static flag to 0 (internally)
+                                        start_file();
+                                        let pl = plugin.name.clone();
+                                        thread::spawn(move || {
+                                            if run_lua_file(format!("./plugins/{}.lua", &mut pl.lock().unwrap())).is_none() {}
+                                        });
+                                    }
+
+                                    if ui.button("Stop").clicked() {
+                                        stop_file();
                                     }
                                 });
                             }
@@ -434,6 +481,7 @@ impl eframe::App for App {
                                 }
 
                                 if ui.button("\u{1F502} Fetch").on_hover_text("Fetch manually in case it doesnt Update the List automatically").clicked() {
+                                    self.plugins.fetched = false;
                                     self.loaded = false;
                                 }
                             });
