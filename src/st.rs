@@ -85,13 +85,16 @@ macro_rules! cstr {
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::{CStr, CString};
+    use std::{ffi::{CStr, CString}, fs, io::Write};
 
     use crate::st::{ffi::{lua_close, lua_getglobal, luaL_newstate, luaL_openlibs, run_lua_file}, macros::{lua_loadfile, lua_pcall, lua_tostring}};
 
     #[test]
     fn run() {
-        
+        let mut f = fs::File::create("test.lua").unwrap();
+        f.write_all(b"print(\"test\")");
+        f.flush();
+
         let s = CString::new("test.lua").unwrap();
         unsafe { run_lua_file(s.as_ptr()) };
         // let l = unsafe { luaL_newstate() };
