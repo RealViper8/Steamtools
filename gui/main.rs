@@ -400,7 +400,7 @@ impl eframe::App for App {
                                         start_file();
                                         let pl = plugin.name.clone();
                                         thread::spawn(move || {
-                                            if run_lua_file(format!("./plugins/{}.lua", &mut pl.lock().unwrap())).is_none() {}
+                                            run_lua_file(format!("./plugins/{}.lua", &mut pl.lock().unwrap()));
                                         });
                                     }
 

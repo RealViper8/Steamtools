@@ -1,6 +1,5 @@
 use std::{ops::{Index, IndexMut}, sync::{Arc, Mutex}};
 
-
 #[derive(Default)]
 pub struct Plugin {
     pub code: String,
@@ -36,7 +35,6 @@ impl Index<usize> for Plugins {
         &self.list[index]
     }
 }
-
 
 impl IndexMut<usize> for Plugins {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {

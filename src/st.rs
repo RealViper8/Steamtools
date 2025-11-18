@@ -50,7 +50,6 @@ pub fn run_lua_file<T: Into<Vec<u8>>>(filename: T ) -> Option<()> {
 }
 mod macros {
     use std::{ffi::{c_char, c_int}, ptr::null};
-
     use crate::st::ffi::{LuaState, lua_pcallk, luaL_loadfilex};
 
     pub fn lua_tostring(l: *mut LuaState, index: c_int) -> *const c_char {
