@@ -1,7 +1,10 @@
 #[cfg_attr(not(debug_assertions), windows_subsystem="windows")]
 
+use windows::Win32::Foundation::HWND;
+use windows::Win32::System::Console::{GetConsoleWindow, AllocConsole, SetConsoleTitleW};
+
 use std::process;
-use std::{collections::HashMap, fs::{self, File}, io::{self, BufReader, BufWriter, Read, Write}, path::{Path, PathBuf}, sync::{Arc, Mutex}, thread};
+use std::{collections::HashMap, fs::{self, File}, io::{self, BufReader, BufWriter, Read, Write}, path::{Path, PathBuf}, process::exit, sync::{Arc, Mutex}, thread};
 
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
 use egui_extras::install_image_loaders;
@@ -11,6 +14,7 @@ use steamtools::{st::{run_lua_file, start_file, stop_file}, *};
 
 mod window;
 use window::{ModsPopup, ViewPopup, ViewState, Settings, Plugins, Plugin};
+use windows::core::w;
 
 #[derive(Deserialize, Serialize, Debug, Default, PartialEq)]
 enum State {
@@ -33,8 +37,11 @@ struct App {
     view: ViewPopup,
     mods: ModsPopup,
     plugins: Plugins,
+    version: String,
     // settings: Settings,
 }
+
+pub const VERSION: &str = "0.1.1";
 
 #[derive(Default)]
 struct GameMap(pub HashMap<u32, Game>);
@@ -146,6 +153,29 @@ impl App {
 
         let mut app = App::default();
         if let Some(storage_ref) = cc.storage {
+            storage_ref.get_string("version" ).map(|version| {
+                app.version = serde_json::from_str::<String>(&version).unwrap();
+                if VERSION != &app.version && let Some(dir) = eframe::storage_dir("steamtools") {
+                    fs::remove_dir_all(dir).unwrap();
+                    let exe = std::env::current_exe().unwrap();
+                    #[cfg(debug_assertions)]
+                    std::process::Command::new(exe)
+                        .spawn()
+                        .ok();
+                    #[cfg(not(debug_assertions))]
+                    std::process::Command::new(exe)
+                        .creation_flags(0x00000008) // DETACHED PROCESS
+                        .spawn()
+                        .ok();
+                    rfd::MessageDialog::new()
+                        .set_title("Info")
+                        .set_buttons(rfd::MessageButtons::Ok)
+                        .set_description(&format!("Successfully updated to version: {VERSION}"))
+                        .show();
+                    exit(0);
+                }
+            });
+
             storage_ref.get_string("steam" ).map(|s| {
                 let mut p = PathBuf::new();
                 app.st = serde_json::from_str::<Steam>(&s).unwrap();
@@ -171,6 +201,7 @@ impl App {
             });
         }
 
+        app.version = VERSION.to_string();
         app
     }
 }
@@ -178,6 +209,7 @@ impl App {
 impl eframe::App for App {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         storage.set_string("steam", serde_json::to_string(&self.st).unwrap());
+        storage.set_string("version", serde_json::to_string(VERSION).unwrap());
         if self.state != State::Setup {
             storage.set_string("state", serde_json::to_string(&State::MainMenu).unwrap());
         } else {
