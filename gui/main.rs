@@ -1,7 +1,5 @@
 #[cfg_attr(not(debug_assertions), windows_subsystem="windows")]
 
-use windows::Win32::Foundation::HWND;
-use windows::Win32::System::Console::{GetConsoleWindow, AllocConsole, SetConsoleTitleW};
 
 use std::process;
 use std::{collections::HashMap, fs::{self, File}, io::{self, BufReader, BufWriter, Read, Write}, path::{Path, PathBuf}, process::exit, sync::{Arc, Mutex}, thread};
@@ -14,7 +12,6 @@ use steamtools::{st::{run_lua_file, start_file, stop_file}, *};
 
 mod window;
 use window::{ModsPopup, ViewPopup, ViewState, Settings, Plugins, Plugin};
-use windows::core::w;
 
 #[derive(Deserialize, Serialize, Debug, Default, PartialEq)]
 enum State {
@@ -157,21 +154,29 @@ impl App {
                 app.version = serde_json::from_str::<String>(&version).unwrap();
                 if VERSION != &app.version && let Some(dir) = eframe::storage_dir("steamtools") {
                     fs::remove_dir_all(dir).unwrap();
-                    let exe = std::env::current_exe().unwrap();
-                    #[cfg(debug_assertions)]
-                    std::process::Command::new(exe)
-                        .spawn()
-                        .ok();
-                    #[cfg(not(debug_assertions))]
-                    std::process::Command::new(exe)
-                        .creation_flags(0x00000008) // DETACHED PROCESS
-                        .spawn()
-                        .ok();
+                    #[cfg(not(target_os = "windows"))]
                     rfd::MessageDialog::new()
                         .set_title("Info")
                         .set_buttons(rfd::MessageButtons::Ok)
-                        .set_description(&format!("Successfully updated to version: {VERSION}"))
+                        .set_description("Restart Steamtools !")
                         .show();
+                    #[cfg(target_os = "windows")] {
+                        let exe = std::env::current_exe().unwrap();
+                        #[cfg(debug_assertions)]
+                        std::process::Command::new(exe)
+                            .spawn()
+                            .ok();
+                        #[cfg(not(debug_assertions))]
+                        std::process::Command::new(exe)
+                            .creation_flags(0x00000008) // DETACHED PROCESS
+                            .spawn()
+                            .ok();
+                        rfd::MessageDialog::new()
+                            .set_title("Info")
+                            .set_buttons(rfd::MessageButtons::Ok)
+                            .set_description(&format!("Updated to version: {VERSION}"))
+                            .show();
+                    }
                     exit(0);
                 }
             });
