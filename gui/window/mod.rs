@@ -1,4 +1,3 @@
-
 mod mods;
 pub use mods::ModsPopup;
 
@@ -7,7 +6,6 @@ pub use {view::ViewPopup, view::ViewState};
 
 mod settings;
 pub use settings::{Settings};
-
 
 mod plugins;
 pub use plugins::{Plugins, Plugin};
