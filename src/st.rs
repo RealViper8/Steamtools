@@ -25,17 +25,31 @@ mod ffi {
     }
 
     unsafe extern "C" {
-        pub(crate) fn run_lua_file(filename: *const c_char);
+        pub(crate) fn run_lua_file(filename: *const c_char) -> c_int;
+        pub(crate) fn set_flag(val: c_int);
+        pub(crate) fn get_flag() -> c_int;
     }
 }
 
-pub fn run_lua_file<T: Into<Vec<u8>>>(filename: T ) {
+pub fn stop_file() {
+    unsafe { ffi::set_flag(1); };
+}
+
+
+pub fn start_file() {
+    unsafe { ffi::set_flag(0); };
+}
+
+pub fn run_lua_file<T: Into<Vec<u8>>>(filename: T ) -> Option<()> {
     let s= CString::new(filename).unwrap();
-    unsafe {ffi::run_lua_file(s.as_ptr());}
+    if unsafe {ffi::run_lua_file(s.as_ptr()) } != 0 {
+        None
+    } else {
+        Some(())
+    }
 }
 mod macros {
     use std::{ffi::{c_char, c_int}, ptr::null};
-
     use crate::st::ffi::{LuaState, lua_pcallk, luaL_loadfilex};
 
     pub fn lua_tostring(l: *mut LuaState, index: c_int) -> *const c_char {

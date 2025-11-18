@@ -1,10 +1,10 @@
-use std::ops::Index;
-
+use std::{ops::{Index, IndexMut}, sync::{Arc, Mutex}};
 
 #[derive(Default)]
 pub struct Plugin {
     pub code: String,
-    pub name: String,
+    pub name_buffer: String,
+    pub name: Arc<Mutex<String>>,
 }
 
 #[derive(Default)]
@@ -17,9 +17,12 @@ pub struct Plugins {
 }
 
 impl Plugins {
-    pub fn get_selected(&self) -> Option<&Plugin> {
+    pub fn get(&self) -> Option<usize> {
+        self.selected_plugin
+    }
+    pub fn get_selected(&mut self) -> Option<&mut Plugin> {
         if let Some(p) = self.selected_plugin {
-            Some(&self[p])
+            Some(&mut self[p])
         } else {
             None
         }
@@ -30,5 +33,11 @@ impl Index<usize> for Plugins {
     type Output = Plugin;
     fn index(&self, index: usize) -> &Self::Output {
         &self.list[index]
+    }
+}
+
+impl IndexMut<usize> for Plugins {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.list[index]
     }
 }
