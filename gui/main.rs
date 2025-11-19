@@ -1,4 +1,4 @@
-#[cfg_attr(not(debug_assertions), windows_subsystem="windows")]
+#![cfg_attr(not(debug_assertions), windows_subsystem="windows")]
 
 
 use std::process;
@@ -162,15 +162,17 @@ impl App {
                         .show();
                     #[cfg(target_os = "windows")] {
                         let exe = std::env::current_exe().unwrap();
+                        use std::os::windows::process::CommandExt;
                         #[cfg(debug_assertions)]
-                        std::process::Command::new(exe)
-                            .spawn()
-                            .ok();
-                        #[cfg(not(debug_assertions))]
                         std::process::Command::new(exe)
                             .creation_flags(0x00000008) // DETACHED PROCESS
                             .spawn()
                             .ok();
+                        // #[cfg(not(debug_assertions))]
+                        // std::process::Command::new(exe)
+                        //     .creation_flags(0x00000008) // DETACHED PROCESS
+                        //     .spawn()
+                        //     .ok();
                         rfd::MessageDialog::new()
                             .set_title("Info")
                             .set_buttons(rfd::MessageButtons::Ok)
