@@ -336,7 +336,6 @@ impl eframe::App for App {
                                             }
 
                                             if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F50D} View").strong())).clicked() {
-                                                self.view.requirements = game.details.pc_requirements.get("minimum").unwrap().to_string();
                                                 self.view.game_id = game.appid;
                                                 self.view.current_game = i;
                                                 self.view.active = true;
@@ -353,11 +352,11 @@ impl eframe::App for App {
                 });
 
                 if !self.loaded {
+                    dbg!(&self.cached_games);
                     let s = self.st.path.clone();
                     let games_arc = self.games.clone();
                     thread::spawn(move || {
                         let result = get_games(&s);
-                        // dbg!(&result);
                         let mut games_lock = games_arc.lock().unwrap();
                         *games_lock = result;
                     });

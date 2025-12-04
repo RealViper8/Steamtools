@@ -23,7 +23,7 @@ fn read_string(reader: &mut impl Read, len_buf: &mut [u8; 4], buf: &mut Vec<u8>)
     Ok(s)
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct GameMap(pub HashMap<u32, Game>);
 
 impl GameMap {
@@ -45,11 +45,11 @@ impl GameMap {
             writer.write_all(&(game.details.is_free as u8).to_le_bytes())?;
             write_string(&mut writer, &game.path)?;
 
-            writer.write_all(&(game.details.pc_requirements.len() as u32).to_le_bytes())?;
-            for (key, s) in &game.details.pc_requirements {
-                write_string(&mut writer, key)?;
-                write_string(&mut writer, s)?;
-            }
+            // writer.write_all(&(game.details.pc_requirements.len() as u32).to_le_bytes())?;
+            // for (key, s) in &game.details.pc_requirements {
+            //     write_string(&mut writer, key)?;
+            //     write_string(&mut writer, s)?;
+            // }
         }
 
         writer.flush()?;
@@ -95,10 +95,35 @@ impl GameMap {
                 appid: appid,
                 installed,
                 path,
-                details: AppData { app_type, name, is_free, header_image, pc_requirements }
+                details: AppData {
+                    app_type,
+                    name,
+                    is_free,
+                    header_image,
+                    //pc_requirements
+                }
             });
         }
 
         Ok(games)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{collections::HashMap, fs};
+
+    use steamtools::Game;
+
+    use crate::utils::bserializer::GameMap;
+
+    #[test]
+    fn write_read() {
+        let mut f = fs::File::create("test.lua").unwrap();
+        let mut map = HashMap::new();
+        let g = Game::default();
+        map.insert(1, &g);
+        let gm = GameMap::write_to(&mut f, map);
+        gm.unwrap()
     }
 }

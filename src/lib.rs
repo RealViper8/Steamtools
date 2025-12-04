@@ -26,8 +26,7 @@ pub struct AppData {
    pub name: String, 
    pub is_free: bool, 
    pub header_image: String,
-
-   pub pc_requirements: HashMap<String, String>,
+//    pub pc_requirements: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -159,8 +158,6 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
                     if let Some((_, value)) = line.split_once('"') {
                         if let Some((_, value)) = value.split_once('"') {
                             name.insert(id, format!("{}\\steamapps\\common\\{}", Into::<PathBuf>::into(path).display(), value.trim()[1..value.len() - 3].to_string()));
-                            // dbg!(&value.trim()[1..value.len() - 3]);
-                            // dbg!(&format!("{}\\steamapps\\common\\{}", Into::<PathBuf>::into(path).display(), value.trim()[1..value.len() - 3].to_string()));
                         }
                     }
                 }
@@ -198,7 +195,6 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
                 }
             };
 
-            // let installed: bool = installed.contains(&appid.to_string_lossy().parse::<u32>().unwrap());
             let installed_val: bool = installed.contains_key(appid_i);
 
             games.push(Game {
@@ -227,6 +223,14 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
     }
 
     games
+}
+
+impl Game {
+    pub fn new() -> Self {
+        Self {
+            ..Default::default()
+        }
+    }
 }
 
 impl Steam {

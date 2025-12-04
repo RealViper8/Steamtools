@@ -60,8 +60,6 @@ impl Plugins {
                         if ui.button("Save").clicked() || ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::S)) {
                             fs::rename(format!("./plugins/{}.lua", &app.plugins.get_selected().unwrap().name.lock().unwrap()), format!("./plugins/{}.lua",&app.plugins.get_selected().unwrap().name_buffer)).ok();
                             fs::write(format!("./plugins/{}.lua", &app.plugins.get_selected().unwrap().name_buffer), app.plugins.get_selected().unwrap().code.as_bytes()).unwrap();
-                            // *self.plugins.list.get_mut(self.plugins.selected_plugin.unwrap()).unwrap().name.lock().unwrap() = self.plugins.get_selected().unwrap().name_buffer.clone();
-                            // self.plugins.list.remove(self.plugins.selected_plugin.unwrap());
                             *app.plugins.list.get_mut(app.plugins.selected_plugin.unwrap()).unwrap().name.lock().unwrap() = app.plugins.get_selected().unwrap().name_buffer.clone();
                         }
 
@@ -116,7 +114,6 @@ impl Plugins {
 
             if app.plugins.list.is_empty() {
                 ui.centered_and_justified(|ui| {
-                    // ui.add(Label::new(RichText::new("No plugins found !").font(FontId::proportional(15.0)).strong()).wrap_mode(egui::TextWrapMode::Extend));
                     if ui.button("Add new plugin").clicked() {
                         let mut dir = std::env::current_dir().unwrap();
                         dir.push("plugins");
