@@ -72,8 +72,32 @@ unsafe extern "C" fn download(l: *mut ffi::LuaState) -> c_int {
     use macros::lua_tostring;
     use ffi::{lua_pushboolean};
 
-    let url = unsafe { CStr::from_ptr(lua_tostring(l, 1)).to_str().unwrap() };
-    let out_path = unsafe { CStr::from_ptr(lua_tostring(l, 2)).to_str().unwrap() };
+    let arg_url = lua_tostring(l, 1);
+    if arg_url.is_null() {
+        unsafe { lua_pushboolean(l, 0) }
+        return 1;
+    }
+    let url = match unsafe { CStr::from_ptr(arg_url).to_str() } {
+        Ok(s) => s,
+        Err(_) => {
+            unsafe { lua_pushboolean(l, 0) }
+            return 1;
+        }
+    };
+
+    let arg_out_path = lua_tostring(l, 2);
+
+    let out_path: &str = if arg_out_path.is_null() {
+        "out"
+    } else {
+        match unsafe { CStr::from_ptr(arg_out_path).to_str() } {
+            Ok(s) => s,
+            Err(_) => {
+                unsafe { lua_pushboolean(l, 0) }
+                return 1;
+            }
+        }
+    };
 
     match reqwest::blocking::get(url) {
         Ok(resp) => {
