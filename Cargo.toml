@@ -30,4 +30,4 @@ windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_System_Co
 winres = "0.1.12"
 
 [build-dependencies]
-cc = "1.2.48"
+cc = "1.2.49"
