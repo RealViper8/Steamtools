@@ -1,7 +1,5 @@
 use eframe::egui::{self, Context};
-
-use crate::App;
-
+use crate::{App, window::WindowPopup};
 
 #[derive(Debug, Default)]
 pub enum ViewState {
@@ -17,8 +15,8 @@ pub struct ViewPopup {
     pub state: ViewState
 }
 
-impl ViewPopup {
-    pub fn window_view(app: &mut App, ctx: &Context) {
+impl WindowPopup for ViewPopup {
+    fn view(app: &mut App, ctx: &Context) {
         egui::Window::new("View").default_size([0.0, 0.0]).open(&mut app.view.active).show(ctx, |ui| {
             ui.vertical_centered(|ui| {
                 ui.horizontal(|ui| {

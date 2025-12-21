@@ -2,18 +2,20 @@
 
 
 use std::process;
-use std::{collections::HashMap, fs::{self, File}, path::{Path, PathBuf}, process::exit, sync::{Arc, Mutex}, thread};
+use std::{fs, path::PathBuf, process::exit, sync::{Arc, Mutex}, thread};
 
 use egui_extras::install_image_loaders;
 use serde::{Serialize, Deserialize};
 use eframe::egui::{self, FontData, FontDefinitions, FontId, RichText};
-use steamtools::{Game, Steam, install_melonloader, get_games};
+use steamtools::{Game, Steam, get_games};
 
 mod window;
 use window::{ModsPopup, ViewPopup, InstallPopup, Settings, Plugins};
 
 mod utils;
 use utils::bserializer::GameMap;
+
+use crate::window::WindowPopup;
 
 #[derive(Deserialize, Serialize, Debug, Default, PartialEq)]
 enum State {
@@ -212,55 +214,10 @@ impl eframe::App for App {
                     });
                 });
 
-                ViewPopup::window_view(self, ctx); 
-                Plugins::window_plugins(self, ctx); 
+                ViewPopup::view(self, ctx); 
+                Plugins::view(self, ctx);
                 Plugins::ceditor(self, ctx);
-
-                egui::Window::new("Mods").default_size([0.0, 0.0]).open(&mut self.mods.active).show(ctx, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.label("APPID:");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.st.mod_id)
-                                .hint_text("Enter appid")
-                                .char_limit(10),
-                        );
-
-                        if ui.button("Get").clicked() {
-                            if self.cached_games.0.is_empty() && !Path::new(STEAM_BINARY_PATH).exists() {
-                                let games_guard = self.games.lock().unwrap();
-                                let mut stfile = File::create(STEAM_BINARY_PATH).unwrap();
-                                dbg!(&games_guard.iter().map(|g| (g.appid, g)).collect::<HashMap<u32, &Game>>());
-                                GameMap::write_to(&mut stfile, games_guard.iter().map(|g| (g.appid, g)).collect::<HashMap<u32, &Game>>()).unwrap();
-                            } else if self.cached_games.0.is_empty() && Path::new(STEAM_BINARY_PATH).exists() {
-                                let mut stfile = File::open(STEAM_BINARY_PATH).unwrap();
-                                self.cached_games.0 = GameMap::read_from(&mut stfile).unwrap();
-                            }
-
-                            if let Err(_) = self.st.mod_id.parse::<u32>() {
-                                rfd::MessageDialog::new()
-                                    .set_level(rfd::MessageLevel::Warning)
-                                    .set_buttons(rfd::MessageButtons::Ok)
-                                    .set_title("Warning")
-                                    .set_description("APPID should be numeric")
-                                    .show();
-                            } else {
-                                if let Some(s) = self.cached_games.0.get(&self.st.mod_id.parse::<u32>().unwrap()) {
-                                    install_melonloader(&s.path, self.st.melon_loader);
-                                } else {
-                                    rfd::MessageDialog::new()
-                                        .set_title("Info")    
-                                        .set_level(rfd::MessageLevel::Info)
-                                        .set_buttons(rfd::MessageButtons::Ok)
-                                        .set_description(format!("You dont have {}.", self.st.mod_id))
-                                        .show();
-                                }
-                            }
-
-                            // TODO: Add Game serialization to binary? 
-                            // todo!("Cant get path without saving Game struct");
-                        };
-                    });
-                });
+                ModsPopup::view(self, ctx);
 
                 egui::TopBottomPanel::top("top").show(ctx, |ui| {
                     let width = ui.available_width();
