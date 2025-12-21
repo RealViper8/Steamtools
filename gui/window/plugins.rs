@@ -3,7 +3,6 @@ use std::{fs, ops::{Index, IndexMut}, path::Path, sync::{Arc, Mutex}, thread};
 use eframe::egui::{self, Context, FontId, Label, RichText};
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
 use steamtools::st::{run_lua_file, start_file, stop_file};
-
 use crate::App;
 
 #[derive(Default)]

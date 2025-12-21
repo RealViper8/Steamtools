@@ -6,11 +6,11 @@ use std::{collections::HashMap, fs::{self, File}, path::{Path, PathBuf}, process
 
 use egui_extras::install_image_loaders;
 use serde::{Serialize, Deserialize};
-use eframe::egui::{self, FontId, RichText};
+use eframe::egui::{self, FontData, FontDefinitions, FontId, RichText};
 use steamtools::{Game, Steam, install_melonloader, get_games};
 
 mod window;
-use window::{ModsPopup, ViewPopup, Settings, Plugins};
+use window::{ModsPopup, ViewPopup, InstallPopup, Settings, Plugins};
 
 mod utils;
 use utils::bserializer::GameMap;
@@ -34,6 +34,7 @@ struct App {
     cached_games: GameMap,
     loaded: bool,
     view: ViewPopup,
+    install: InstallPopup,
     mods: ModsPopup,
     plugins: Plugins,
     version: String,
@@ -48,6 +49,16 @@ impl App {
         // Restore app state using cc.storage (requires the "persistence" feature).
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
+        let mut fonts = FontDefinitions::default();
+        fonts.font_data.insert(
+            "dejavu".to_owned(),
+            Arc::new(FontData::from_static(include_bytes!("../fonts/DejaVuSans.ttf")))
+        );
+        fonts.families
+            .get_mut(&egui::FontFamily::Proportional)
+            .unwrap()
+            .insert(0, "dejavu".to_owned());
+        cc.egui_ctx.set_fonts(fonts);
 
         let mut app = App::default();
         if let Some(storage_ref) = cc.storage {
@@ -270,6 +281,10 @@ impl eframe::App for App {
 
                                 if self.settings.plugins_experimental && ui.button("\u{1F50C} Plugins").on_hover_text("Explore Plugins").clicked() {
                                     self.plugins.active = !self.plugins.active;
+                                }
+
+                                if ui.button("\u{2193} Install").on_hover_text("Downloads a lua file to use with st").clicked() {
+                                    self.install.active = !self.install.active;
                                 }
 
                                 if ui.button("\u{1F502} Fetch").on_hover_text("Fetch manually in case it doesnt Update the List automatically").clicked() {
