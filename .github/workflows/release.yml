@@ -63,11 +63,8 @@ jobs:
       - name: Renaming Windows files
         shell: powershell
         run: |
-          : # x64
           Move-Item target\debug\stcli.exe stcli_windows_amd64_debug.exe
           Move-Item target\release\stcli.exe stcli_windows_amd64_release.exe
-
-          : # x32
           Move-Item target\debug\stcli.exe stcli_windows_x86_debug.exe
           Move-Item target\release\stcli.exe stcli_windows_x86_release.exe
 
@@ -76,11 +73,8 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           files: |
-            : # x64
             stcli_windows_amd64_debug.exe
             stcli_windows_amd64_release.exe
-
-            : # x32
             stcli_windows_x86_debug.exe
             stcli_windows_x86_release.exe
       
