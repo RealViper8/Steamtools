@@ -44,10 +44,7 @@ jobs:
         run: cargo build --target i686-pc-windows-msvc
 
       - name: Build Release (x86)
-        # run: cargo build --release --target i686-pc-windows-msvc
-        run: |
-          Write-Host "=== Contents of target directory ==="
-          Get-ChildItem -Recurse -Include *.exe target | Select-Object FullName, Length | Format-Table -AutoSize
+        run: cargo build --release --target i686-pc-windows-msvc
       
       - name: Restore Cert
         shell: powershell
@@ -66,10 +63,10 @@ jobs:
       - name: Renaming Windows files
         shell: powershell
         run: |
-          Move-Item $PWD\target\debug\stcli.exe stcli_windows_amd64_debug.exe
-          Move-Item $PWD\target\release\stcli.exe stcli_windows_amd64_release.exe
-          Move-Item $PWD\target\i686-pc-windows-msvc\debug\stcli.exe stcli_windows_x86_debug.exe
-          Move-Item $PWD\target\i686-pc-windows-msvc\release\stcli.exe stcli_windows_x86_release.exe
+          Move-Item "$env:GITHUB_WORKSPACE\target\debug\stcli.exe" stcli_windows_amd64_debug.exe
+          Move-Item "$env:GITHUB_WORKSPACE\target\release\stcli.exe" stcli_windows_amd64_release.exe
+          Move-Item "$env:GITHUB_WORKSPACE\target\i686-pc-windows-msvc\debug\stcli.exe" stcli_windows_x86_debug.exe
+          Move-Item "$env:GITHUB_WORKSPACE\target\i686-pc-windows-msvc\release\stcli.exe" stcli_windows_x86_release.exe
 
       - name: Upload Windows Release
         uses: softprops/action-gh-release@v2
