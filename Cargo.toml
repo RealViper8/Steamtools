@@ -1,6 +1,6 @@
 [package]
 name = "steam"
-version = "0.1.5"
+version = "0.1.2"
 edition = "2024"
 
 [lib]
@@ -15,11 +15,11 @@ eframe = { version = "0.33.3", features = ["wgpu", "persistence"] }
 egui_code_editor = "0.2.20"
 egui_extras = { version = "0.33.3", features = ["all_loaders"] }
 image = { version = "0.25.9", features = ["jpeg"] }
-reqwest = { version = "0.12.26", features = ["json","blocking"] }
+reqwest = { version = "0.12.28", features = ["json","blocking"] }
 rfd = "0.16.0"
 scraper = "0.25.0"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
+serde_json = "1.0.147"
 tree-sitter = "0.26.3"
 tree-sitter-lua = "0.2.0"
 
