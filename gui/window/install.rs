@@ -1,10 +1,10 @@
 use crate::{stack_buffer, utils::stack::StackBuffer, window::WindowPopup};
-use std::fmt::Write;
-use eframe::egui::Window;
+use std::{fmt::Write, fs::File, io::Write as ioWrite, path::{MAIN_SEPARATOR, Path}};
+use eframe::{egui::Window};
 
 const MANIFESTS_URL: &str = "https://raw.githubusercontent.com/SteamAutoCracks/ManifestHub/refs/heads";
 
-struct Handler(fn(i32));
+struct Handler(fn(&String, i32));
 
 pub struct InstallPopup {
     pub active: bool,
@@ -12,18 +12,30 @@ pub struct InstallPopup {
     handler: Handler
 }
 
-fn install(appid: i32) {
-    let mut sb = stack_buffer!(256);
+fn install(path: &String, appid: i32) {
+    let mut sb = stack_buffer!(100); // Lua string can always be (max of) 100 bytes
     write!(sb, "{}/{}/{}.lua", &MANIFESTS_URL, appid, appid).unwrap();
     if let Ok(resp) = reqwest::blocking::get(sb.as_str()) {
-        let b = resp.bytes().unwrap();
-        let s = std::str::from_utf8(&b).unwrap_or("")
-            .chars()
-            .filter(|c| c.is_ascii_digit())
-            .collect::<String>();
+        if !resp.status().is_success() {
+            return;
+        }
 
-        dbg!(s);
-        dbg!(b);
+        // if Path::new(path)
+
+        let mut sb = stack_buffer!(516);
+        write!(sb, "{}{MAIN_SEPARATOR}config{MAIN_SEPARATOR}stplug-in{MAIN_SEPARATOR}{}.lua", path, appid).unwrap();
+        if Path::new(sb.as_str()).exists() {
+            rfd::MessageDialog::new()
+                .set_title("Info")
+                .set_description("You already have the game/app !")
+                .set_buttons(rfd::MessageButtons::Ok)
+                .show();
+            return;
+        }
+
+
+        let mut file = File::create_new(sb.as_str()).unwrap();
+        file.write_all(&resp.bytes().unwrap()).unwrap();
     }
     dbg!(sb.as_str());
 }
@@ -53,7 +65,7 @@ impl WindowPopup for InstallPopup {
 
 
                 if ui.button("Download").clicked() {
-                    (app.install.handler.0)(app.install.appid.parse::<i32>().unwrap())
+                    (app.install.handler.0)(&app.st.path, app.install.appid.parse::<i32>().unwrap())
                 }
 
             });

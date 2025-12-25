@@ -90,7 +90,7 @@ impl App {
                         rfd::MessageDialog::new()
                             .set_title("Info")
                             .set_buttons(rfd::MessageButtons::Ok)
-                            .set_description(&format!("Updated to version: {VERSION}"))
+                            .set_description(&format!("Updated to version: {VERSION}\nPlease setup the path for steam again !"))
                             .show();
                     }
                     exit(0);
@@ -325,7 +325,6 @@ impl eframe::App for App {
                 });
 
                 if !self.loaded {
-                    dbg!(&self.cached_games);
                     let s = self.st.path.clone();
                     let games_arc = self.games.clone();
                     thread::spawn(move || {
