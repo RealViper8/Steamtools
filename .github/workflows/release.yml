@@ -19,6 +19,7 @@ jobs:
           with:
             tag_name: ${{ github.ref_name }}
             name: ${{ github.ref_name }}
+            token: ${{ github.token }}
             generate_release_notes: true
 
   windows-build:
