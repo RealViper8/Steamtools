@@ -34,11 +34,17 @@ jobs:
       - name: Build Release (x64)
         run: cargo build --release
 
+      - name: Build Debug (x64)
+        run: cargo build --bin stcli
+
       - name: Install 32-bit Rust target
         run: rustup target add i686-pc-windows-msvc
       
+      - name: Build Release (x86)
+        run: cargo build --release --target i686-pc-windows-msvc
+
       - name: Build Debug (x86)
-        run: cargo build --target i686-pc-windows-msvc
+        run: cargo build --target i686-pc-windows-msvc --bin stcli
       
       - name: Restore Cert
         shell: powershell
@@ -58,14 +64,18 @@ jobs:
         shell: powershell
         run: |
           Move-Item target\release\stcli.exe stcli_windows_amd64_release.exe
+          Move-Item target\debug\stcli.exe stcli_windows_amd64_debug.exe
           Move-Item target\i686-pc-windows-msvc\release\stcli.exe stcli_windows_x86_release.exe
+          Move-Item target\i686-pc-windows-msvc\debug\stcli.exe stcli_windows_x86_debug.exe
 
       - name: Upload Windows Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           files: |
+            stcli_windows_amd64_debug.exe
             stcli_windows_amd64_release.exe
+            stcli_windows_x86_debug.exe
             stcli_windows_x86_release.exe
       
       - name: Cleanup
