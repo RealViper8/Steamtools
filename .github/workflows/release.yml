@@ -25,7 +25,7 @@ jobs:
       - name: Sign exe
         shell: powershell
         run: |
-          & "C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe" sign /f devcodesign.pfx /p "${{ secrets.WIN_CERT_PASSWORD }}" /fd SHA256 /t "http://timestamp.digicert.com" target\release\stcli.exe
+          & "C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe" sign /f codesign.pfx /p "${{ secrets.WIN_CERT_PASSWORD }}" /fd SHA256 /t "http://timestamp.digicert.com" target\release\stcli.exe
       
       - name: Upload Release
         uses: softprops/action-gh-release@v2
