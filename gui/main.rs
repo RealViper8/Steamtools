@@ -218,6 +218,7 @@ impl eframe::App for App {
                 Plugins::view(self, ctx);
                 Plugins::ceditor(self, ctx);
                 ModsPopup::view(self, ctx);
+                InstallPopup::view(self, ctx);
 
                 egui::TopBottomPanel::top("top").show(ctx, |ui| {
                     let width = ui.available_width();
