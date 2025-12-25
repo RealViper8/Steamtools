@@ -1,12 +1,13 @@
 name: Release
 
-permissions:
-  contents: write
 
 on:
   push:
     tags:
       - "v*"
+
+permissions:
+  contents: write
 
 jobs:
   release:
@@ -14,7 +15,7 @@ jobs:
       runs-on: ubuntu-latest
 
       steps:
-        - name: Create release
+        - name: create release
           uses: softprops/action-gh-release@v2
           with:
             tag_name: ${{ github.ref_name }}
