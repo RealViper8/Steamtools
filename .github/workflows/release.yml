@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    branches:
+        - main
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: cargo build --release
+      
+      - name: Restore Cert
+        shell: powershell
+        run: |
+          [IO.File]::WriteAllBytes(
+            "codesign.pfx",
+            [Convert]::FromBase64String("${{ secrets.WIN_CERT_PFX_BASE64 }}")
+          )
+      
+      - name: Sign exe
+        shell: powershell
+        run: |
+          signtool sign /f devcodesign.pfx /p "Viper67811" /fd SHA256 /t "http://timestamp.digicert.com" target\release\stcli.exe
+      
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target\release\stcli.exe
