@@ -43,7 +43,7 @@ struct App {
     // settings: Settings,
 }
 
-pub const VERSION: &str = "0.1.1";
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 impl App {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
