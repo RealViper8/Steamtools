@@ -44,7 +44,10 @@ jobs:
         run: cargo build --target i686-pc-windows-msvc
 
       - name: Build Release (x86)
-        run: cargo build --release --target i686-pc-windows-msvc
+        # run: cargo build --release --target i686-pc-windows-msvc
+        run: |
+          Write-Host "=== Contents of target directory ==="
+          Get-ChildItem -Recurse -Include *.exe target | Select-Object FullName, Length | Format-Table -AutoSize
       
       - name: Restore Cert
         shell: powershell
