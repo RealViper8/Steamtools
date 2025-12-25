@@ -21,20 +21,11 @@ jobs:
             "codesign.pfx",
             [Convert]::FromBase64String("${{ secrets.WIN_CERT_PFX_BASE64 }}")
           )
-
-      - name: Add signtool to PATH
-        shell: powershell
-        run: |
-          $sdk = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" |
-            Sort-Object Name -Descending |
-            Select-Object -First 1
-
-          echo "$($sdk.FullName)\x64" >> $env:GITHUB_PATH
       
       - name: Sign exe
         shell: powershell
         run: |
-          signtool sign /f devcodesign.pfx /p "Viper67811" /fd SHA256 /t "http://timestamp.digicert.com" target\release\stcli.exe
+          "C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe" sign /f devcodesign.pfx /p "Viper67811" /fd SHA256 /t "http://timestamp.digicert.com" target\release\stcli.exe
       
       - name: Upload Release
         uses: softprops/action-gh-release@v2
