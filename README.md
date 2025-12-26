@@ -28,6 +28,6 @@
 **Language:** Rust 🦀
 **Status:** In active development 🚀
 
-![Steamtools App](image.png)
+![Steamtools App](0.2.1.png)
 
 ![Alt](https://repobeats.axiom.co/api/embed/0c1c32f9f6d0794bc572fbb52c48eea466d46477.svg "Repobeats analytics image")
