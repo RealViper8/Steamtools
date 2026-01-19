@@ -25,7 +25,7 @@ enum State {
     Settings,
 }
 
-
+const HOOK_DLL: &[u8] = include_bytes!("../deps/xinput1_4.dll");
 const STEAM_BINARY_PATH: &str = "steam.bin";
 
 #[derive(Default)]
@@ -40,6 +40,7 @@ struct App {
     install: InstallPopup,
     mods: ModsPopup,
     plugins: Plugins,
+    unlock: bool,
     version: String,
     // settings: Settings,
 }
@@ -121,6 +122,10 @@ impl App {
             storage_ref.get_string("settings" ).map(|settings| {
                 app.settings = serde_json::from_str(&settings).unwrap();
             });
+
+            storage_ref.get_string("unlock" ).map(|unlock| {
+                app.unlock = serde_json::from_str(&unlock).unwrap();
+            });
         }
 
         if app.st.path.is_empty() {
@@ -143,6 +148,7 @@ impl eframe::App for App {
         }
         storage.set_string("games", serde_json::to_string(&self.games).unwrap());
         storage.set_string("settings", serde_json::to_string(&self.settings).unwrap());
+        storage.set_string("unlock", serde_json::to_string(&self.unlock).unwrap());
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -235,7 +241,7 @@ impl eframe::App for App {
                             ui.add_space(15.0);
 
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                if ui.button(RichText::new("⚙").strong().font(FontId::proportional(20.0))).clicked() {
+                                if ui.button(RichText::new("⚙").strong().font(FontId::proportional(20.0))).on_hover_text("Explore Settings").clicked() {
                                     self.state = State::Settings;
                                 }
 
@@ -254,6 +260,14 @@ impl eframe::App for App {
                                 if ui.button("\u{1F502} Fetch").on_hover_text("Fetch manually in case it doesnt Update the List automatically").clicked() {
                                     self.plugins.fetched = false;
                                     self.loaded = false;
+                                }
+
+                                if ui.checkbox(&mut self.unlock, "Unlock").changed() {
+                                    if self.unlock {
+                                        fs::write(format!("{}\\xinput1_4.dll", self.st.path), HOOK_DLL).unwrap();
+                                    } else {
+                                        fs::remove_file(format!("{}\\xinput1_4.dll", self.st.path)).unwrap();
+                                    }
                                 }
                             });
                         });
@@ -303,18 +317,18 @@ impl eframe::App for App {
                                             }
 
                                             if game.installed {
-                                                if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F5D1} Uninstall").strong().raised())).clicked() {
+                                                if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F5D1} Uninstall").strong().raised())).on_hover_text("Prompts steam to uninstall the game").clicked() {
                                                     #[cfg(target_os="windows")]
                                                     process::Command::new("cmd").args(["/C", &format!("start steam://uninstall/{}", game.appid)]).spawn().expect("Failed to uninstall");
                                                 }
                                             } else {
-                                                if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{2795} Install").strong().raised())).clicked() {
+                                                if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{2795} Install").strong().raised())).on_hover_text("Prompts steam to install the game").clicked() {
                                                     #[cfg(target_os="windows")]
                                                     process::Command::new("cmd").args(["/C", &format!("start steam://install/{}", game.appid)]).spawn().expect("Failed to install");
                                                 }
                                             }
 
-                                            if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F50D} View").strong())).clicked() {
+                                            if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F50D} View").strong())).on_hover_text("View information about the game").clicked() {
                                                 self.view.game_id = game.appid;
                                                 self.view.current_game = i;
                                                 self.view.active = true;
