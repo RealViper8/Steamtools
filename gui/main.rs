@@ -128,6 +128,7 @@ impl App {
             });
         }
 
+        #[cfg(target_os = "windows")]
         if app.st.path.is_empty() {
             app.st.path = windows_registry::LOCAL_MACHINE.open("software\\WOW6432Node\\Valve\\Steam").unwrap().get_string("InstallPath").unwrap();
         }
