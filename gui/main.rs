@@ -25,6 +25,7 @@ enum State {
     Settings,
 }
 
+
 const STEAM_BINARY_PATH: &str = "steam.bin";
 
 #[derive(Default)]
@@ -122,6 +123,10 @@ impl App {
             });
         }
 
+        if app.st.path.is_empty() {
+            app.st.path = windows_registry::LOCAL_MACHINE.open("software\\WOW6432Node\\Valve\\Steam").unwrap().get_string("InstallPath").unwrap();
+        }
+
         app.version = VERSION.to_string();
         app
     }
@@ -162,14 +167,15 @@ impl eframe::App for App {
 
                         if !self.st.path.is_empty() && ui.button(RichText::new("Validate").font(FontId::proportional(18.0))).clicked() {
                             let mut pt_bf = PathBuf::from(self.st.path.clone());
-                            pt_bf.push("config");
-                            pt_bf.push("stplug-in");
+                            // pt_bf.push("config");
+                            // pt_bf.push("stplug-in");
+                            pt_bf.push("steam.exe");
                             dbg!(&pt_bf);
                             if !pt_bf.exists() {
                                 rfd::MessageDialog::new()
                                     .set_level(rfd::MessageLevel::Info)
                                     .set_title("Error")
-                                    .set_description(format!("Steam or Steamtools is not installed in {}. Please choose a path where you installed Steam with steamtools.", self.st.path))
+                                    .set_description(format!("Steam is not installed in {}. Please choose a path where you installed Steam.", self.st.path))
                                     .show();
                             } else {
                                 rfd::MessageDialog::new()

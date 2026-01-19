@@ -8,7 +8,6 @@ fn main() {
         res.compile().expect("Failed to embedd icon !");
     }
 
-
     Build::new()
         .file("lua/lapi.c")
         .file("lua/lauxlib.c")

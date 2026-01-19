@@ -1,6 +1,6 @@
 [package]
 name = "steam"
-version = "0.2.1"
+version = "0.3.1"
 edition = "2024"
 
 [lib]
@@ -15,13 +15,14 @@ eframe = { version = "0.33.3", features = ["wgpu", "persistence"] }
 egui_code_editor = "0.2.20"
 egui_extras = { version = "0.33.3", features = ["all_loaders"] }
 image = { version = "0.25.9", features = ["jpeg"] }
-reqwest = { version = "0.12.28", features = ["json","blocking"] }
-rfd = "0.16.0"
+reqwest = { version = "0.13.1", features = ["json","blocking"] }
+rfd = "0.17.0"
 scraper = "0.25.0"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.147"
+serde_json = "1.0.149"
 tree-sitter = "0.26.3"
-tree-sitter-lua = "0.2.0"
+tree-sitter-lua = "0.4.1"
+windows-registry = "0.6.1"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_System_Console", "Win32_UI_WindowsAndMessaging"] }
@@ -30,4 +31,4 @@ windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_System_Co
 winres = "0.1.12"
 
 [build-dependencies]
-cc = "1.2.50"
+cc = "1.2.53"
