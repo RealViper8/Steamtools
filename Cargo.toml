@@ -31,4 +31,4 @@ windows-registry = "0.6.1"
 winres = "0.1.12"
 
 [build-dependencies]
-cc = "1.2.53"
+cc = "1.2.54"
