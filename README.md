@@ -1,6 +1,6 @@
 # 🧰 Steamtools
 
-**Steamtools** is a lightweight tool written in **Rust** that allows you to easily **view, install, and remove Lua Manifests**.
+**Steamtools** is a lightweight tool written in **Rust** that allows you to easily **view, install, and remove Lua Manifests**. The source code of the proxy dll: xinput1_4.dll is currently not available since I only ship the binary for it. May change in Future !
 
 ---
 
