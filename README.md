@@ -12,6 +12,7 @@
 - [x] Add tool: Uninstall  
 - [X] Add tool: View  
 - [X] Add Window: Settings
+- [ ] Search Bar
 
 ---
 
@@ -22,6 +23,7 @@
   - [X] Basic Support (1 active running plugin)
   - [X] Code Editor (supports syntax highlighting)
   - [ ] Being able to run more then 1 script (on diffrent threads)
+- [ ] Better Visuals
 
 ---
 
