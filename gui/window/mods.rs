@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
 
-use steamtools::{Game, install_melonloader};
+use steamtools::{install_melonloader};
 
 use crate::STEAM_BINARY_PATH;
 use crate::utils::bserializer::GameMap;
@@ -27,10 +26,11 @@ impl WindowPopup for ModsPopup {
 
                 if ui.button("Get").clicked() {
                     if app.cached_games.0.is_empty() && !Path::new(STEAM_BINARY_PATH).exists() {
-                        let games_guard = app.games.lock().unwrap();
                         let mut stfile = File::create(STEAM_BINARY_PATH).unwrap();
-                        dbg!(&games_guard.iter().map(|g| (g.appid, g)).collect::<HashMap<u32, &Game>>());
-                        GameMap::write_to(&mut stfile, games_guard.iter().map(|g| (g.appid, g)).collect::<HashMap<u32, &Game>>()).unwrap();
+                        {
+                            let games_guard = app.games.lock().unwrap();
+                            GameMap::write_to(&mut stfile, &games_guard).unwrap();
+                        }
                     } else if app.cached_games.0.is_empty() && Path::new(STEAM_BINARY_PATH).exists() {
                         let mut stfile = File::open(STEAM_BINARY_PATH).unwrap();
                         app.cached_games.0 = GameMap::read_from(&mut stfile).unwrap();

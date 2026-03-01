@@ -1264,9 +1264,9 @@ dependencies = [
 
 [[package]]
 name = "egui_code_editor"
-version = "0.2.20"
+version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39a1b847b0ff5a3bac4e8604eca605808970bbcdaba76b3101db1051e4206dc6"
+checksum = "70addd812d64b30d2adabdc4598c648f4fb38cac5df641260b1996efdf22851f"
 dependencies = [
  "egui",
 ]
@@ -4330,7 +4330,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "steam"
-version = "0.3.1"
+version = "0.4.1"
 dependencies = [
  "cc",
  "criterion",
