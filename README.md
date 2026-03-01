@@ -1,6 +1,6 @@
 # 🧰 Steamtools
 
-**Steamtools** is a lightweight tool written in **Rust** that allows you to easily **view, install, and remove Lua Manifests**. The source code of the proxy dll: xinput1_4.dll is currently not available since I only ship the binary for it. May change in Future !
+**Steamtools** is a lightweight tool written in **Rust** that allows you to easily **view, install, and remove Lua Manifests**. The source code of the proxy dll: xinput1_4.dll is currently not available since I only ship the binary for it. May **change** in  the **future** !
 
 ---
 
@@ -11,7 +11,7 @@
 - [x] Add tool: Install  
 - [x] Add tool: Uninstall  
 - [X] Add tool: View  
-- [X] Add Window: Settings (experimental)
+- [X] Add Window: Settings
 
 ---
 
@@ -25,10 +25,19 @@
 
 ---
 
+## Donating
+
+Since this is a personal project and I invest my free time in making this you could support me by donating!
+SOL: GYepZXvMAyQ8y54HuWx8QR3yBBg9EFEqn7dDJo93GbTM (SOL Network)
+
+[![Donate](https://img.shields.io/badge/Donate-Ko--fi-orange)](https://ko-fi.com/realviper)
+
 ## Prerequisites
 
 - VC_Runtime: [x64]("https://aka.ms/vs/17/release/vc_redist.x64.exe")
-- Opengl Drivers: [AMD]("https://www.amd.com/en/support/download/drivers.html") [NVIDIA]("https://www.nvidia.com/de-de/drivers/")
+- Opengl Drivers:
+  - [AMD]("https://www.amd.com/en/support/download/drivers.html")
+  - [NVIDIA]("https://www.nvidia.com/de-de/drivers/")
 
 **Language:** Rust 🦀
 **Status:** In active development 🚀

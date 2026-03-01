@@ -27,7 +27,7 @@ fn read_string(reader: &mut impl Read, len_buf: &mut [u8; 4], buf: &mut Vec<u8>)
 pub struct GameMap(pub HashMap<u32, Game>);
 
 impl GameMap {
-    pub fn write_to(file: &mut impl Write, map: HashMap<u32, &Game>) -> io::Result<()> {
+    pub fn write_to(file: &mut impl Write, map: &HashMap<u32, Game>) -> io::Result<()> {
         let mut writer = BufWriter::new(file);
 
         writer.write_all(&(map.len() as u32).to_le_bytes())?; // Length
@@ -105,11 +105,11 @@ mod tests {
 
     #[test]
     fn write_read() {
-        let mut f = fs::File::create("test.lua").unwrap();
+        let mut f = fs::File::create("test.bin").unwrap();
         let mut map = HashMap::new();
         let g = Game::default();
-        map.insert(1, &g);
-        let gm = GameMap::write_to(&mut f, map);
+        map.insert(1, g);
+        let gm = GameMap::write_to(&mut f, &map);
         gm.unwrap()
     }
 }

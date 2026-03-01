@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem="windows")]
 
-
+use std::collections::HashMap;
 use std::fmt::Write;
 use std::process;
 use std::{fs, path::PathBuf, process::exit, sync::{Arc, Mutex}, thread};
@@ -34,7 +34,7 @@ struct App {
     st: Steam,
     settings: Settings,
     state: State,
-    games: Arc<Mutex<Vec<Game>>>,
+    games: Arc<Mutex<HashMap<u32, Game>>>,
     cached_games: GameMap,
     loaded: bool,
     view: ViewPopup,
@@ -121,7 +121,7 @@ impl App {
             });
 
             storage_ref.get_string("games" ).map(|games| {
-                app.games = serde_json::from_str::<Arc<Mutex<Vec<Game>>>>(&games).unwrap();
+                app.games = serde_json::from_str::<Arc<Mutex<HashMap<u32, Game>>>>(&games).unwrap();
                 app.loaded = true;
             });
 
@@ -229,7 +229,10 @@ impl eframe::App for App {
                         ui.horizontal(|ui| {
                             ui.label("Made by");
                             ui.hyperlink_to("RealViper", "https://github.com/RealViper8/Steamtools");
+                            ui.add_space((ui.available_width()/2.0)+85.0);
+                            ui.label(format!("Version: {}", VERSION));
                         });
+
                     });
                 });
 
@@ -281,7 +284,7 @@ impl eframe::App for App {
                                     path.push(&self.st.path);
                                     path.push("config\\stplug-in");
                                     match files {
-                                        Some(files) => {
+                                        Some(ref files) => {
                                             files.iter().for_each(|file| {
                                                 path.push(&file.file_stem().unwrap());
                                                 fs::copy(file.as_path(),format!("{}.lua", &path.to_string_lossy())).unwrap();
@@ -289,6 +292,37 @@ impl eframe::App for App {
                                         },
                                         None => ()
                                     }
+
+                                    if files.is_none() {
+                                        return;
+                                    }
+
+                                    // for file in files.unwrap() {
+                                    //     let games_lock = self.games.clone();
+                                    //         match file.file_stem().unwrap().to_str().unwrap().parse::<u32>().ok() {
+                                    //             Some(appid) => {
+                                    //                 let appid = appid;
+                                    //                 thread::spawn(move || {
+                                    //                     let url = format!("{}{}", STEAM_URL, appid);
+                                    //                     println!("[FETCHING] {}", appid);
+                                    //                     dbg!(&url);
+                                    //                     let resp: HashMap<String, GameDetails> = match blocking::get(url).ok().unwrap().json() {
+                                    //                         Ok(r) => {
+                                    //                             r
+                                    //                         },
+                                    //                         Err(e) => {
+                                    //                             eprintln!("[FETCHING ERROR] {}", e);
+                                    //                             return
+                                    //                         }
+                                    //                     };
+
+
+                                    //                 });
+                                    //             },
+                                    //             None => println!("error: failed to read .lua make sure the filename is the appid !"),
+                                    //         };
+                                    //     }
+                                    self.loaded = false;
                                 }
 
                                 if ui.checkbox(&mut self.unlock, "Unlock").changed() {
@@ -319,16 +353,20 @@ impl eframe::App for App {
                         let height = ui.available_height();
                         egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
                             egui::Grid::new("games").striped(false).show(ui, |ui| {
-                                for (i, game) in self.games.lock().unwrap().iter().enumerate() {
+                                let t = {
+                                    self.games.lock().unwrap().clone()
+                                };
+
+                                for (i, game) in t.iter().enumerate() {
                                    ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                                         self.buffer.clear();
-                                        write!(&mut self.buffer, "file://icons/{}.jpg", game.appid).unwrap();
+                                        write!(&mut self.buffer, "file://icons/{}.jpg", game.0).unwrap();
                                         ui.add(
                                             egui::Image::new(&self.buffer)
                                                 .fit_to_exact_size(egui::vec2(width * 0.4, height * 0.4))
                                         );
                                         self.buffer.clear();
-                                        ui.add_sized([width * 0.3, height * 0.3], egui::Label::new(RichText::new(&game.details.name).strong()).wrap());
+                                        ui.add_sized([width * 0.3, height * 0.3], egui::Label::new(RichText::new(&game.1.details.name).strong()).wrap());
 
                                         ui.vertical(|ui| {
                                             let height = ui.available_height();
@@ -337,29 +375,38 @@ impl eframe::App for App {
                                                 p.push("config");
                                                 p.push("stplug-in");
                                                 self.buffer.clear();
-                                                write!(&mut self.buffer, "{}.lua", game.appid).unwrap();
+                                                write!(&mut self.buffer, "{}.lua", game.0).unwrap();
                                                 p.push(&self.buffer);
                                                 self.buffer.clear();
-                                                if fs::remove_file(p).is_err() {
+                                                if fs::remove_file(&p).is_err() {
                                                     rfd::MessageDialog::new()
                                                         .set_title("Error")
                                                         .set_description("Failed to delete")
                                                         .set_buttons(rfd::MessageButtons::Ok);
                                                 }
 
-                                                self.loaded = false;
+                                                p.clear();
+                                                p.push("icons");
+                                                p.push(format!("{}.jpg", game.0));
+                                                dbg!(&p);
+
+                                                fs::remove_file(&p).ok();
+                                                
+                                                if let Ok(ref mut g) = self.games.try_lock() {
+                                                    g.remove(game.0);
+                                                }
                                             }
 
-                                            if game.installed {
+                                            if game.1.installed {
                                                 if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F5D1} Uninstall").strong().raised())).on_hover_text("Prompts steam to uninstall the game").clicked() {
-                                                    write!(&mut self.buffer, "start steam://uninstall/{}", game.appid).unwrap();
+                                                    write!(&mut self.buffer, "start steam://uninstall/{}", game.1.appid).unwrap();
                                                     #[cfg(target_os="windows")]
                                                     process::Command::new("cmd").args(["/C", &self.buffer]).spawn().expect("Failed to uninstall");
                                                     self.buffer.clear();
                                                 }
                                             } else {
                                                 if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{2795} Install").strong().raised())).on_hover_text("Prompts steam to install the game").clicked() {
-                                                    write!(&mut self.buffer, "start steam://install/{}", game.appid).unwrap();
+                                                    write!(&mut self.buffer, "start steam://install/{}", game.1.appid).unwrap();
                                                     #[cfg(target_os="windows")]
                                                     process::Command::new("cmd").args(["/C", &self.buffer]).spawn().expect("Failed to install");
                                                     self.buffer.clear();
@@ -367,7 +414,7 @@ impl eframe::App for App {
                                             }
 
                                             if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F50D} View").strong())).on_hover_text("View information about the game").clicked() {
-                                                self.view.game_id = game.appid;
+                                                self.view.game_id = game.1.appid;
                                                 self.view.current_game = i;
                                                 self.view.active = true;
                                             }
@@ -386,9 +433,17 @@ impl eframe::App for App {
                     let s = self.st.path.clone();
                     let games_arc = self.games.clone();
                     thread::spawn(move || {
-                        let result = get_games(&s);
-                        let mut games_lock = games_arc.lock().unwrap();
-                        *games_lock = result;
+                        let mut sbin = fs::File::create(STEAM_BINARY_PATH).unwrap();
+
+                        let current_games = {
+                            games_arc.lock().unwrap().clone()
+                        };
+                        GameMap::write_to(&mut sbin, &current_games).unwrap();
+
+                        let result = get_games(&s, current_games);
+
+                        let mut games = games_arc.lock().unwrap();
+                        *games = result;
                     });
 
                     self.loaded = true;

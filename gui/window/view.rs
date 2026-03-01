@@ -32,8 +32,6 @@ impl WindowPopup for ViewPopup {
                         write!(&mut app.buffer, "APPID: {}", app.view.game_id).unwrap();
                         ui.label(&app.buffer);
                         app.buffer.clear();
-                        // ui.horizontal(|ui| {
-                        // })
                     });
                 }
             }

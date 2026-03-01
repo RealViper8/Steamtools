@@ -10,7 +10,7 @@ use serde::{Serialize, Deserialize};
 pub mod st;
 
 // Can get ip timeouted if user requests too much !!!
-const STEAM_URL: &str = "https://store.steampowered.com/api/appdetails?appids=";
+pub const STEAM_URL: &str = "https://store.steampowered.com/api/appdetails?appids=";
 
 // const STEAM_HEADER_URL: &str = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/";
 
@@ -34,7 +34,7 @@ pub struct AppData {
 //    pub pc_requirements: HashMap<String, String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Game {
     pub appid: u32,
     pub details: AppData,
@@ -118,7 +118,7 @@ pub fn install_melonloader(path: &str, melon_loader: bool) -> Option<()> {
     Some(())
 }
 
-pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
+pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Game>) -> HashMap<u32, Game> {
     let mut p = path.into();
     p.push("config");
     p.push("stplug-in");
@@ -126,7 +126,7 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
     let mut gp = path.into();
     gp.push("steamapps");
 
-    let mut games: Vec<Game> = Vec::new();
+    let mut games: HashMap<u32, Game> = current_games;
 
     let entries = match fs::read_dir(p) {
         Ok(entries) => entries,
@@ -176,6 +176,18 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
 
     dbg!(&installed);
 
+    let mut icons: Option<HashMap<u32, PathBuf>> = None;
+    if Path::new("icons").exists() {
+        icons = Some(HashMap::new());
+
+        for entry in fs::read_dir("icons").unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+
+            icons.as_mut().unwrap().insert(path.file_stem().unwrap().to_str().unwrap().parse::<u32>().unwrap(), path);
+        }
+    }
+
     'entries: for entry in entries {
         let entry = match entry {
             Ok(e) => e,
@@ -184,7 +196,7 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
                 continue;
             }
         };
- 
+
         let path = entry.path();
         if path.is_file() {
             let appid = path.file_stem().unwrap();
@@ -196,6 +208,12 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
                     continue 'entries;
                 }
             };
+
+            if let Some(ic) = icons.as_ref() {
+                if ic.contains_key(&appid_i) {
+                    continue 'entries;
+                }
+            }
 
             let url = format!("{}{}", STEAM_URL, appid.display());
             println!("[FETCHING] {}", appid.display());
@@ -210,7 +228,7 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
 
             let installed_val: bool = installed.contains_key(&appid_i);
 
-            games.push(Game {
+            games.insert(appid_i, Game {
                 appid: appid.to_string_lossy().to_string().parse::<u32>().unwrap(),
                 details: if let Some(r) = resp.get(&appid.to_string_lossy().to_string()) && let Some(data) = &r.data{
                         if !Path::new(&format!("icons/{}.jpg", appid.display())).exists() {
