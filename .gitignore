@@ -8,3 +8,5 @@ steam.bin
 /MelonLoader
 /mods
 /plugins
+/benches
+.env

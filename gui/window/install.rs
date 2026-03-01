@@ -1,10 +1,10 @@
 use crate::{stack_buffer, utils::stack::StackBuffer, window::WindowPopup};
-use std::{fmt::Write, fs::File, io::Write as ioWrite, path::{MAIN_SEPARATOR, Path}};
+use std::{fmt::Write, fs::File, io::{self, Error, ErrorKind, Write as ioWrite}, path::{MAIN_SEPARATOR, Path}};
 use eframe::{egui::Window};
 
 const MANIFESTS_URL: &str = "https://raw.githubusercontent.com/SteamAutoCracks/ManifestHub/refs/heads";
 
-struct Handler(fn(&String, i32));
+struct Handler(fn(&String, i32) -> io::Result<()>);
 
 pub struct InstallPopup {
     pub active: bool,
@@ -12,32 +12,31 @@ pub struct InstallPopup {
     handler: Handler
 }
 
-fn install(path: &String, appid: i32) {
+fn install(path: &String, appid: i32) -> io::Result<()> {
     let mut sb = stack_buffer!(100); // Lua string can always be (max of) 100 bytes
     write!(sb, "{}/{}/{}.lua", &MANIFESTS_URL, appid, appid).unwrap();
-    if let Ok(resp) = reqwest::blocking::get(sb.as_str()) {
-        if !resp.status().is_success() {
-            return;
-        }
 
-        // if Path::new(path)
-
-        let mut sb = stack_buffer!(516);
-        write!(sb, "{}{MAIN_SEPARATOR}config{MAIN_SEPARATOR}stplug-in{MAIN_SEPARATOR}{}.lua", path, appid).unwrap();
-        if Path::new(sb.as_str()).exists() {
-            rfd::MessageDialog::new()
-                .set_title("Info")
-                .set_description("You already have the game/app !")
-                .set_buttons(rfd::MessageButtons::Ok)
-                .show();
-            return;
-        }
-
-
-        let mut file = File::create_new(sb.as_str()).unwrap();
-        file.write_all(&resp.bytes().unwrap()).unwrap();
+    let resp = reqwest::blocking::get(sb.as_str()).map_err(|_| Error::new(ErrorKind::ConnectionAborted, "Invalid url"))?;
+    if !resp.status().is_success() {
+        return Err(io::Error::new(io::ErrorKind::ConnectionRefused, "Response was an error"));
     }
+
+    let mut sb = stack_buffer!(516);
+    write!(sb, "{}{MAIN_SEPARATOR}config{MAIN_SEPARATOR}stplug-in{MAIN_SEPARATOR}{}.lua", path, appid).unwrap();
+    if Path::new(sb.as_str()).exists() {
+        return Err(io::Error::new(io::ErrorKind::AlreadyExists, "Game already exists!"));
+    }
+
+    let mut file = File::create_new(sb.as_str())?;
+    file.write_all(&resp.bytes().unwrap())?;
+
     dbg!(sb.as_str());
+    rfd::MessageDialog::new()
+        .set_title("Success")
+        .set_description("Lua file founded and downloaded!")
+        .show();
+
+    Ok(())
 }
 
 impl Default for InstallPopup {
@@ -63,9 +62,28 @@ impl WindowPopup for InstallPopup {
                     }
                 });
 
-
-                if ui.button("Download").clicked() {
-                    (app.install.handler.0)(&app.st.path, app.install.appid.parse::<i32>().unwrap())
+                if ui.button("Download").clicked() && !app.install.appid.is_empty() {
+                    if let Err(error) = (app.install.handler.0)(&app.st.path, app.install.appid.parse::<i32>().unwrap()) {
+                        match error.kind() {
+                            ErrorKind::AlreadyExists => {
+                                rfd::MessageDialog::new()
+                                    .set_title("Info")
+                                    .set_level(rfd::MessageLevel::Info)
+                                    .set_description("You already have the game/app !")
+                                    .set_buttons(rfd::MessageButtons::Ok)
+                                    .show();
+                            },
+                            ErrorKind::ConnectionRefused => {
+                                rfd::MessageDialog::new()
+                                    .set_title("Error")
+                                    .set_level(rfd::MessageLevel::Error)
+                                    .set_description("Couldnt find app in database / invalid appid")
+                                    .set_buttons(rfd::MessageButtons::Ok)
+                                    .show();
+                            },
+                            e => { dbg!(&e); },
+                        }
+                    }
                 }
 
             });

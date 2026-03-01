@@ -5,12 +5,18 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use reqwest::blocking;
 use serde::{Serialize, Deserialize};
-
 // use crate::st::{Lua, init_lua};
 
 pub mod st;
 
+// Can get ip timeouted if user requests too much !!!
 const STEAM_URL: &str = "https://store.steampowered.com/api/appdetails?appids=";
+
+// const STEAM_HEADER_URL: &str = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/";
+
+// Requires api key
+pub const STEAM_APPLIST_URL: &str = "https://api.steampowered.com/IStoreService/GetAppList/v1/?key=";
+
 const MELONLOADER_URL: &str = "https://github.com/LavaGang/MelonLoader/releases/download/v0.7.1/";
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -24,7 +30,6 @@ pub struct AppData {
     #[serde(rename="type")]
    pub app_type: String, 
    pub name: String, 
-   pub is_free: bool, 
    pub header_image: String,
 //    pub pc_requirements: HashMap<String, String>,
 }
@@ -171,7 +176,7 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
 
     dbg!(&installed);
 
-    for entry in entries {
+    'entries: for entry in entries {
         let entry = match entry {
             Ok(e) => e,
             Err(e) => {
@@ -183,10 +188,18 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
         let path = entry.path();
         if path.is_file() {
             let appid = path.file_stem().unwrap();
-            let appid_i = &appid.to_string_lossy().parse::<u32>().unwrap();
+            let appid_i = match appid.to_string_lossy().parse::<u32>() {
+                Ok(i) => i,
+                Err(_) => {
+                    rfd::MessageDialog::new().set_description(format!("Failed to parse {} please use appid. Skipping entry", appid.to_string_lossy()))
+                        .set_buttons(rfd::MessageButtons::Ok);
+                    continue 'entries;
+                }
+            };
 
             let url = format!("{}{}", STEAM_URL, appid.display());
             println!("[FETCHING] {}", appid.display());
+            dbg!(&url);
             let resp: HashMap<String, GameDetails> = match blocking::get(url).ok().unwrap().json() {
                 Ok(r) => r,
                 Err(e) => {
@@ -195,7 +208,7 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
                 }
             };
 
-            let installed_val: bool = installed.contains_key(appid_i);
+            let installed_val: bool = installed.contains_key(&appid_i);
 
             games.push(Game {
                 appid: appid.to_string_lossy().to_string().parse::<u32>().unwrap(),
@@ -212,7 +225,7 @@ pub fn get_games(path: impl Into<PathBuf> + Copy) -> Vec<Game> {
                         AppData::default()
                     },
                 path: if installed_val {
-                    name.get(appid_i).unwrap().to_string()
+                    name.get(&appid_i).unwrap().to_string()
                 } else {
                     String::new()
                 },

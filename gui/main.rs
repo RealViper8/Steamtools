@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem="windows")]
 
 
+use std::fmt::Write;
 use std::process;
 use std::{fs, path::PathBuf, process::exit, sync::{Arc, Mutex}, thread};
 
@@ -42,6 +43,7 @@ struct App {
     plugins: Plugins,
     unlock: bool,
     version: String,
+    buffer: String,
     // settings: Settings,
 }
 
@@ -64,7 +66,11 @@ impl App {
             .insert(0, "dejavu".to_owned());
         cc.egui_ctx.set_fonts(fonts);
 
-        let mut app = App::default();
+        let mut app = App {
+            buffer: String::with_capacity(512),
+            ..Default::default()
+        };
+
         if let Some(storage_ref) = cc.storage {
             storage_ref.get_string("version" ).map(|version| {
                 app.version = serde_json::from_str::<String>(&version).unwrap();
@@ -222,7 +228,7 @@ impl eframe::App for App {
                     ui.centered_and_justified(|ui| {
                         ui.horizontal(|ui| {
                             ui.label("Made by");
-                        ui.hyperlink_to("RealViper", "https://github.com/RealViper8/Steamtools");
+                            ui.hyperlink_to("RealViper", "https://github.com/RealViper8/Steamtools");
                         });
                     });
                 });
@@ -263,6 +269,28 @@ impl eframe::App for App {
                                     self.loaded = false;
                                 }
 
+                                if ui.button("Load lua").on_hover_text("Loads a .lua file for game/dlcs").clicked() {
+                                    // Lua files
+                                    let files =
+                                        rfd::FileDialog::default()
+                                            .add_filter("lua", &["lua"])
+                                            .set_title("Steamtools Lua")
+                                            .pick_files();
+
+                                    let mut path: PathBuf = PathBuf::new();
+                                    path.push(&self.st.path);
+                                    path.push("config\\stplug-in");
+                                    match files {
+                                        Some(files) => {
+                                            files.iter().for_each(|file| {
+                                                path.push(&file.file_stem().unwrap());
+                                                fs::copy(file.as_path(),format!("{}.lua", &path.to_string_lossy())).unwrap();
+                                            });
+                                        },
+                                        None => ()
+                                    }
+                                }
+
                                 if ui.checkbox(&mut self.unlock, "Unlock").changed() {
                                     if self.unlock {
                                         fs::write(format!("{}\\xinput1_4.dll", self.st.path), HOOK_DLL).unwrap();
@@ -293,11 +321,13 @@ impl eframe::App for App {
                             egui::Grid::new("games").striped(false).show(ui, |ui| {
                                 for (i, game) in self.games.lock().unwrap().iter().enumerate() {
                                    ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                        self.buffer.clear();
+                                        write!(&mut self.buffer, "file://icons/{}.jpg", game.appid).unwrap();
                                         ui.add(
-                                            egui::Image::new(format!("file://icons/{}.jpg", game.appid))
+                                            egui::Image::new(&self.buffer)
                                                 .fit_to_exact_size(egui::vec2(width * 0.4, height * 0.4))
                                         );
-                                        ctx.request_repaint();
+                                        self.buffer.clear();
                                         ui.add_sized([width * 0.3, height * 0.3], egui::Label::new(RichText::new(&game.details.name).strong()).wrap());
 
                                         ui.vertical(|ui| {
@@ -306,7 +336,10 @@ impl eframe::App for App {
                                                 let mut p = PathBuf::from(&self.st.path);
                                                 p.push("config");
                                                 p.push("stplug-in");
-                                                p.push(format!("{}.lua", game.appid));
+                                                self.buffer.clear();
+                                                write!(&mut self.buffer, "{}.lua", game.appid).unwrap();
+                                                p.push(&self.buffer);
+                                                self.buffer.clear();
                                                 if fs::remove_file(p).is_err() {
                                                     rfd::MessageDialog::new()
                                                         .set_title("Error")
@@ -319,13 +352,17 @@ impl eframe::App for App {
 
                                             if game.installed {
                                                 if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F5D1} Uninstall").strong().raised())).on_hover_text("Prompts steam to uninstall the game").clicked() {
+                                                    write!(&mut self.buffer, "start steam://uninstall/{}", game.appid).unwrap();
                                                     #[cfg(target_os="windows")]
-                                                    process::Command::new("cmd").args(["/C", &format!("start steam://uninstall/{}", game.appid)]).spawn().expect("Failed to uninstall");
+                                                    process::Command::new("cmd").args(["/C", &self.buffer]).spawn().expect("Failed to uninstall");
+                                                    self.buffer.clear();
                                                 }
                                             } else {
                                                 if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{2795} Install").strong().raised())).on_hover_text("Prompts steam to install the game").clicked() {
+                                                    write!(&mut self.buffer, "start steam://install/{}", game.appid).unwrap();
                                                     #[cfg(target_os="windows")]
-                                                    process::Command::new("cmd").args(["/C", &format!("start steam://install/{}", game.appid)]).spawn().expect("Failed to install");
+                                                    process::Command::new("cmd").args(["/C", &self.buffer]).spawn().expect("Failed to install");
+                                                    self.buffer.clear();
                                                 }
                                             }
 
@@ -353,6 +390,7 @@ impl eframe::App for App {
                         let mut games_lock = games_arc.lock().unwrap();
                         *games_lock = result;
                     });
+
                     self.loaded = true;
                 }
             }
@@ -363,7 +401,7 @@ impl eframe::App for App {
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         centered: true,
-        viewport: egui::ViewportBuilder::default().with_taskbar(true).with_inner_size([520.0, 320.0]).with_min_inner_size([520.0, 320.0]).with_icon(eframe::icon_data::from_png_bytes(include_bytes!("../icon.png")).unwrap()),
+        viewport: egui::ViewportBuilder::default().with_taskbar(true).with_inner_size([600.0, 370.0]).with_min_inner_size([600.0, 370.0]).with_icon(eframe::icon_data::from_png_bytes(include_bytes!("../icon.png")).unwrap()),
         ..Default::default()
     };
 

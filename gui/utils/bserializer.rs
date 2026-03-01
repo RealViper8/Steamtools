@@ -42,7 +42,6 @@ impl GameMap {
             write_string(&mut writer, &game.details.name)?;
             write_string(&mut writer, &game.details.header_image)?;
 
-            writer.write_all(&(game.details.is_free as u8).to_le_bytes())?;
             write_string(&mut writer, &game.path)?;
 
             // writer.write_all(&(game.details.pc_requirements.len() as u32).to_le_bytes())?;
@@ -77,19 +76,7 @@ impl GameMap {
             let name = read_string(&mut reader, &mut buf, &mut res)?;
             let header_image = read_string(&mut reader, &mut buf, &mut res)?;
 
-            reader.read_exact(&mut buf[0..1])?;
-            let is_free = buf[0] != 0;
-
             let path = read_string(&mut reader, &mut buf, &mut res)?;
-
-            reader.read_exact(&mut buf)?;
-            let count = u32::from_le_bytes(buf);
-            let mut pc_requirements = HashMap::<String, String>::new();
-            for _ in 0..count {
-                let key = read_string(&mut reader, &mut buf,&mut res)?;
-                let s = read_string(&mut reader, &mut buf,&mut res)?;
-                pc_requirements.insert(key, s);
-            }
 
             games.insert(appid, Game {
                 appid: appid,
@@ -98,7 +85,6 @@ impl GameMap {
                 details: AppData {
                     app_type,
                     name,
-                    is_free,
                     header_image,
                     //pc_requirements
                 }

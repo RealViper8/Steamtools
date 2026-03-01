@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use eframe::egui::{self, Context};
 use crate::{App, window::WindowPopup};
 
@@ -26,10 +28,12 @@ impl WindowPopup for ViewPopup {
             match app.view.state {
                 ViewState::Main => {
                     ui.vertical_centered(|ui| {
-                        ui.label(format!("APPID: {}", app.view.game_id));
-                        ui.horizontal(|ui| {
-                            ui.label(format!("free: {}", app.games.lock().unwrap().get(app.view.current_game).unwrap().details.is_free));
-                        })
+                        app.buffer.clear();
+                        write!(&mut app.buffer, "APPID: {}", app.view.game_id).unwrap();
+                        ui.label(&app.buffer);
+                        app.buffer.clear();
+                        // ui.horizontal(|ui| {
+                        // })
                     });
                 }
             }
