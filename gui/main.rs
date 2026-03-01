@@ -361,10 +361,19 @@ impl eframe::App for App {
                                    ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                                         self.buffer.clear();
                                         write!(&mut self.buffer, "file://icons/{}.jpg", game.0).unwrap();
-                                        ui.add(
+                                        let response = ui.add(
                                             egui::Image::new(&self.buffer)
+                                                .corner_radius(egui::CornerRadius::same(8))
                                                 .fit_to_exact_size(egui::vec2(width * 0.4, height * 0.4))
                                         );
+                                        if response.hovered() {
+                                            ui.painter().rect_stroke(
+                                                response.rect.expand(2.0),
+                                                10.0,
+                                                egui::Stroke::new(2.0, ui.visuals().selection.stroke.color),
+                                                egui::StrokeKind::Middle
+                                            );
+                                        }
                                         self.buffer.clear();
                                         ui.add_sized([width * 0.3, height * 0.3], egui::Label::new(RichText::new(&game.1.details.name).strong()).wrap());
 
