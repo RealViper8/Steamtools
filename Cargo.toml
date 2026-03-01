@@ -32,7 +32,7 @@ rfd = "0.17.0"
 scraper = "0.25.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
-tree-sitter = "0.26.5"
+tree-sitter = "0.26.6"
 tree-sitter-lua = "0.5.0"
 
 [target.'cfg(windows)'.dependencies]
