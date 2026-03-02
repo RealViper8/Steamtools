@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem="windows")]
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::process;
@@ -8,7 +8,7 @@ use std::{fs, path::PathBuf, process::exit, sync::{Arc, Mutex}, thread};
 
 use egui_extras::install_image_loaders;
 use serde::{Serialize, Deserialize};
-use eframe::egui::{self, FontData, FontDefinitions, FontId, RichText};
+use eframe::egui::{self, FontData, FontDefinitions, FontId, RichText, Sense, UiBuilder, vec2};
 use steamtools::{Game, Steam, get_games};
 
 mod window;
@@ -49,6 +49,8 @@ struct App {
     buffer: String,
     searchbar: RefCell<String>,
     filter: Filter,
+    selected_game: Cell<u32>,
+    delete_request: Option<u32>,
     // settings: Settings,
 }
 
@@ -249,7 +251,6 @@ impl eframe::App for App {
                 InstallPopup::view(self, ctx);
 
                 egui::TopBottomPanel::top("top").show(ctx, |ui| {
-                    let width = ui.available_width();
                     ui.vertical(|ui| {
                         ui.horizontal(|ui| {
                             ui.add_space(5.0);
@@ -376,115 +377,135 @@ impl eframe::App for App {
                         });
                         
                         ui.add_space(4.0);
-                        ui.horizontal(|ui| {
-                            ui.add_sized([width * 0.4, 25.0], egui::Label::new("Header Image"));
-                            ui.add_sized([width * 0.27, 25.0], egui::Label::new("Game"));
+                    });
+                });
 
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                ui.add_sized([width * 0.3, 25.0], egui::Label::new("Tools"));
+                egui::SidePanel::right("game_stats").exact_width(140.0).show_separator_line(true).show(ctx, |ui| {
+                    let width = ui.available_width();
+                    let height = ui.available_height();
+                    ui.vertical_centered(|ui| {
+                        let selected_game = self.selected_game.get();
+                        if selected_game != 0 {
+                            let game = self.games.lock().unwrap();
+                            let game = game.get(&selected_game).unwrap();
+                            ui.label(RichText::new(&game.details.name).font(FontId::new(18.0, egui::FontFamily::Proportional)));
+                            ui.add_space(5.0);
+                            ui.label(&format!("APPID: {}", game.appid));
+                            ui.add_space(8.0);
+                            ui.vertical_centered_justified(|ui| {
+                                if game.installed {
+                                    if ui.add_sized(vec2(50.0,25.0), egui::Button::new(RichText::new("\u{1F5D1} Uninstall").strong().raised())).on_hover_text("Prompts steam to uninstall the game").clicked() {
+                                        write!(&mut self.buffer, "start steam://uninstall/{}", game.appid).unwrap();
+                                        #[cfg(target_os="windows")]
+                                        process::Command::new("cmd").args(["/C", &self.buffer]).spawn().expect("Failed to uninstall");
+                                        self.buffer.clear();
+                                    }
+                                } else {
+                                    if ui.add_sized(vec2(50.0, 25.0), egui::Button::new(RichText::new("\u{2795} Install").strong().raised())).on_hover_text("Prompts steam to install the game").clicked() {
+                                        write!(&mut self.buffer, "start steam://install/{}", game.appid).unwrap();
+                                        #[cfg(target_os="windows")]
+                                        process::Command::new("cmd").args(["/C", &self.buffer]).spawn().expect("Failed to install");
+                                        self.buffer.clear();
+                                    }
+                                }
+                                ui.add_space(2.0);
+                                if ui.add_sized([width * 0.3, height * 0.1], egui::Button::new(RichText::new("\u{1F50D} View").strong())).on_hover_text("View information about the game").clicked() {
+                                    self.view.current_game = game.appid;
+                                    self.view.active = true;
+                                }
+                                ui.add_space(2.0);
+                                if ui.add_sized([width * 0.3, height * 0.1], egui::Button::new(RichText::new("Remove").strong())).on_hover_text("Removes the game from your Account").clicked() {
+                                    let mut p = PathBuf::from(&self.st.path);
+                                    p.push("config");
+                                    p.push("stplug-in");
+                                    self.buffer.clear();
+                                    write!(&mut self.buffer, "{}.lua", &game.appid).unwrap();
+                                    p.push(&self.buffer);
+                                    self.buffer.clear();
+                                    if fs::remove_file(&p).is_err() {
+                                        rfd::MessageDialog::new()
+                                            .set_title("Error")
+                                            .set_description("Failed to delete")
+                                            .set_buttons(rfd::MessageButtons::Ok);
+                                    }
+
+                                    p.clear();
+                                    p.push("icons");
+                                    p.push(format!("{}.jpg", &game.appid));
+                                    dbg!(&p);
+
+                                    fs::remove_file(&p).ok();
+                                    self.delete_request = Some(game.appid);
+                                    // self.loaded = false;
+                                }
                             });
-                        });
+                        } else {
+                            ui.horizontal_wrapped(|ui| {
+                                ui.wrap_mode();
+                                ui.label("Please select a game first by clicking on it !");
+                            });
+                        }
                     });
                 });
 
                 egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.vertical(|ui| {
-                        let width = ui.available_width();
-                        let height = ui.available_height();
-                        egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
-                            egui::Grid::new("games").striped(false).show(ui, |ui| {
-                                let t = {
-                                    self.games.lock().unwrap().clone()
-                                };
+                    egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
+                        ui.horizontal_wrapped(|ui| {
+                            ui.spacing_mut().item_spacing = egui::vec2(12.0, 12.0);
+                            let game_map = {
+                                self.games.lock().unwrap().clone()
+                            };
 
-                                for (i, game) in t.iter().filter(|(gid, g)| {
-                                    match &self.filter {
-                                        Filter::Id(id) => id == *gid,
-                                        Filter::Name(name) => g.details.name.to_lowercase().starts_with(&*name.to_lowercase()),
-                                        Filter::None => true,
-                                    }
-                                }).enumerate() {
-                                   ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                                        self.buffer.clear();
-                                        write!(&mut self.buffer, "file://icons/{}.jpg", game.0).unwrap();
-                                        let response = ui.add(
-                                            egui::Image::new(&self.buffer)
-                                                .corner_radius(egui::CornerRadius::same(8))
-                                                .fit_to_exact_size(egui::vec2(width * 0.4, height * 0.4))
-                                        );
-                                        if response.hovered() {
-                                            ui.painter().rect_stroke(
-                                                response.rect.expand(2.0),
-                                                10.0,
-                                                egui::Stroke::new(2.0, ui.visuals().selection.stroke.color),
-                                                egui::StrokeKind::Middle
-                                            );
-                                        }
-                                        self.buffer.clear();
-                                        ui.add_sized([width * 0.3, height * 0.3], egui::Label::new(RichText::new(&game.1.details.name).strong()).wrap());
+                            if let Some(s) = self.delete_request.take() {
+                                self.selected_game.set(0);
+                                self.games.lock().unwrap().remove(&s);
+                                self.loaded = false;
+                            }
 
-                                        ui.vertical(|ui| {
-                                            let height = ui.available_height();
-                                            if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("Remove").strong())).on_hover_text("Removes the game from your Account").clicked() {
-                                                let mut p = PathBuf::from(&self.st.path);
-                                                p.push("config");
-                                                p.push("stplug-in");
-                                                self.buffer.clear();
-                                                write!(&mut self.buffer, "{}.lua", game.0).unwrap();
-                                                p.push(&self.buffer);
-                                                self.buffer.clear();
-                                                if fs::remove_file(&p).is_err() {
-                                                    rfd::MessageDialog::new()
-                                                        .set_title("Error")
-                                                        .set_description("Failed to delete")
-                                                        .set_buttons(rfd::MessageButtons::Ok);
-                                                }
-
-                                                p.clear();
-                                                p.push("icons");
-                                                p.push(format!("{}.jpg", game.0));
-                                                dbg!(&p);
-
-                                                fs::remove_file(&p).ok();
-                                                
-                                                if let Ok(ref mut g) = self.games.try_lock() {
-                                                    g.remove(game.0);
-                                                }
-                                            }
-
-                                            if game.1.installed {
-                                                if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F5D1} Uninstall").strong().raised())).on_hover_text("Prompts steam to uninstall the game").clicked() {
-                                                    write!(&mut self.buffer, "start steam://uninstall/{}", game.1.appid).unwrap();
-                                                    #[cfg(target_os="windows")]
-                                                    process::Command::new("cmd").args(["/C", &self.buffer]).spawn().expect("Failed to uninstall");
-                                                    self.buffer.clear();
-                                                }
-                                            } else {
-                                                if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{2795} Install").strong().raised())).on_hover_text("Prompts steam to install the game").clicked() {
-                                                    write!(&mut self.buffer, "start steam://install/{}", game.1.appid).unwrap();
-                                                    #[cfg(target_os="windows")]
-                                                    process::Command::new("cmd").args(["/C", &self.buffer]).spawn().expect("Failed to install");
-                                                    self.buffer.clear();
-                                                }
-                                            }
-
-                                            if ui.add_sized([width * 0.3, height * 0.3], egui::Button::new(RichText::new("\u{1F50D} View").strong())).on_hover_text("View information about the game").clicked() {
-                                                self.view.game_id = game.1.appid;
-                                                self.view.current_game = i;
-                                                self.view.active = true;
-                                            }
-                                        });
-                                        ui.add_space(55.0);
-                                    });
-
-                                    ui.end_row();
+                            for (id, _) in game_map.iter().filter(|(gid, g)| {
+                                match &self.filter {
+                                    Filter::Id(id) => id == *gid,
+                                    Filter::Name(name) => g.details.name.to_lowercase().starts_with(&*name.to_lowercase()),
+                                    Filter::None => true,
                                 }
-                            });
+                            }) {
+                                let width = 240.0;
+                                let height = 112.0;
+                                let (card_rect, card_resp) =
+                                    ui.allocate_exact_size(vec2(width, height), Sense::hover());
+
+                                self.buffer.clear();
+                                write!(&mut self.buffer, "file://icons/{}.jpg", id).unwrap();
+
+                                ui.scope_builder(
+                                    UiBuilder::new().max_rect(card_rect),
+                                    |ui| {
+                                    ui.add(
+                                    egui::Image::new(&self.buffer)
+                                        .corner_radius(egui::CornerRadius::same(6))
+                                        .fit_to_exact_size(egui::vec2(width, height))
+                                    );
+                                });
+
+                                if card_resp.hovered() {
+                                    ui.painter().rect_stroke(
+                                        card_resp.rect.expand(4.0),
+                                        10.0,
+                                        egui::Stroke::new(2.0, ui.visuals().selection.stroke.color),
+                                        egui::StrokeKind::Middle
+                                    );
+                                }
+
+                                if card_resp.interact(Sense::click()).clicked() {
+                                    self.selected_game.set(*id);
+                                }
+                            }
                         });
                     });
                 });
 
                 if !self.loaded {
+                    ctx.request_repaint();
                     let s = self.st.path.clone();
                     let games_arc = self.games.clone();
                     thread::spawn(move || {
@@ -511,7 +532,7 @@ impl eframe::App for App {
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         centered: true,
-        viewport: egui::ViewportBuilder::default().with_taskbar(true).with_inner_size([600.0, 370.0]).with_min_inner_size([600.0, 370.0]).with_icon(eframe::icon_data::from_png_bytes(include_bytes!("../icon.png")).unwrap()),
+        viewport: egui::ViewportBuilder::default().with_taskbar(true).with_inner_size([650.0, 370.0]).with_min_inner_size([650.0, 370.0]).with_icon(eframe::icon_data::from_png_bytes(include_bytes!("../icon.png")).unwrap()),
         ..Default::default()
     };
 
