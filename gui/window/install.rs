@@ -83,6 +83,9 @@ impl WindowPopup for InstallPopup {
                             },
                             e => { dbg!(&e); },
                         }
+                    } else {
+                        // if its successfull trigger a "reload"
+                        app.loaded = false;
                     }
                 }
 

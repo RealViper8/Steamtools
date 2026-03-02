@@ -118,6 +118,7 @@ pub fn install_melonloader(path: &str, melon_loader: bool) -> Option<()> {
     Some(())
 }
 
+#[must_use]
 pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Game>) -> HashMap<u32, Game> {
     let mut p = path.into();
     p.push("config");
@@ -265,6 +266,7 @@ impl Game {
 }
 
 impl Steam {
+    #[must_use]
     pub fn new(path: Option<impl Into<String> + AsRef<str>>) -> Self {
         let mut steam = Self { path: String::new(), cfg: PathBuf::new(), ..Default::default() };
         if let Some(p) = path {
