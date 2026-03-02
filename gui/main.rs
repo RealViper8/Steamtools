@@ -347,6 +347,7 @@ impl eframe::App for App {
                         ui.horizontal(|ui| {
                             let searchbar = ui.add(egui::TextEdit::singleline(self.searchbar.get_mut())
                                 .hint_text("Search")
+                                .char_limit(50)
                                 .background_color(egui::Color32::from_hex("#2a363a").unwrap())
                             );
 
@@ -395,6 +396,7 @@ impl eframe::App for App {
                             ui.vertical_centered_justified(|ui| {
                                 if game.installed {
                                     if ui.add_sized(vec2(50.0,25.0), egui::Button::new(RichText::new("\u{1F5D1} Uninstall").strong().raised())).on_hover_text("Prompts steam to uninstall the game").clicked() {
+                                        self.buffer.clear();
                                         write!(&mut self.buffer, "start steam://uninstall/{}", game.appid).unwrap();
                                         #[cfg(target_os="windows")]
                                         process::Command::new("cmd").args(["/C", &self.buffer]).spawn().expect("Failed to uninstall");
@@ -402,6 +404,7 @@ impl eframe::App for App {
                                     }
                                 } else {
                                     if ui.add_sized(vec2(50.0, 25.0), egui::Button::new(RichText::new("\u{2795} Install").strong().raised())).on_hover_text("Prompts steam to install the game").clicked() {
+                                        self.buffer.clear();
                                         write!(&mut self.buffer, "start steam://install/{}", game.appid).unwrap();
                                         #[cfg(target_os="windows")]
                                         process::Command::new("cmd").args(["/C", &self.buffer]).spawn().expect("Failed to install");

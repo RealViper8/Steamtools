@@ -15,7 +15,11 @@ path = "gui/main.rs"
 [profile.release]
 opt-level = 3
 incremental = true
+codegen-units = 16
 debug = "line-tables-only"
+
+[profile.release.package."*"]
+opt-level = 3
 
 [profile.profiling]
 inherits = "release"
