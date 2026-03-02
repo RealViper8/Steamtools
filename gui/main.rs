@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem="windows")]
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::process;
@@ -15,6 +16,7 @@ use window::{ModsPopup, ViewPopup, InstallPopup, Settings, Plugins};
 
 mod utils;
 use utils::bserializer::GameMap;
+use utils::filter::Filter;
 
 use crate::window::WindowPopup;
 
@@ -28,6 +30,7 @@ enum State {
 
 const HOOK_DLL: &[u8] = include_bytes!("../deps/xinput1_4.dll");
 const STEAM_BINARY_PATH: &str = "steam.bin";
+
 
 #[derive(Default)]
 struct App {
@@ -44,6 +47,8 @@ struct App {
     unlock: bool,
     version: String,
     buffer: String,
+    searchbar: RefCell<String>,
+    filter: Filter,
     // settings: Settings,
 }
 
@@ -83,13 +88,14 @@ impl App {
                         .set_description("Restart Steamtools !")
                         .show();
                     #[cfg(target_os = "windows")] {
-                        let exe = std::env::current_exe().unwrap();
-                        use std::os::windows::process::CommandExt;
-                        #[cfg(debug_assertions)]
-                        std::process::Command::new(exe)
-                            .creation_flags(0x00000008) // DETACHED PROCESS
-                            .spawn()
-                            .ok();
+                        #[cfg(debug_assertions)] {
+                            let exe = std::env::current_exe().unwrap();
+                            use std::os::windows::process::CommandExt;
+                            std::process::Command::new(exe)
+                                .creation_flags(0x00000008) // DETACHED PROCESS
+                                .spawn()
+                                .ok();
+                        }
                         // #[cfg(not(debug_assertions))]
                         // std::process::Command::new(exe)
                         //     .creation_flags(0x00000008) // DETACHED PROCESS
@@ -246,8 +252,8 @@ impl eframe::App for App {
                     let width = ui.available_width();
                     ui.vertical(|ui| {
                         ui.horizontal(|ui| {
-                            ui.label(RichText::new("Steam Tools").font(FontId::proportional(20.0)));
-                            
+                            ui.add_space(5.0);
+                            ui.label(RichText::new("Steam Tools").font(FontId::proportional(24.0)));
                             ui.add_space(15.0);
 
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -335,7 +341,41 @@ impl eframe::App for App {
                             });
                         });
 
-                        ui.add_space(10.0);
+                        ui.add_space(3.0);
+
+                        ui.horizontal(|ui| {
+                            let searchbar = ui.add(egui::TextEdit::singleline(self.searchbar.get_mut())
+                                .hint_text("Search")
+                                .background_color(egui::Color32::from_hex("#2a363a").unwrap())
+                            );
+
+                            if ui.button("\u{2715}").clicked() {
+                                self.searchbar.get_mut().clear();
+                                self.filter = Filter::None;
+                                return;
+                            }
+
+                            if ui.input(|i| i.key_pressed(egui::Key::Tab)) {
+                                searchbar.request_focus();
+                            }
+
+                            if searchbar.changed() {
+                                if self.searchbar.borrow().is_empty() {
+                                    self.filter = Filter::None;
+                                    return;
+                                }
+
+                                match &self.searchbar.borrow().parse::<u32>() {
+                                    Ok(id) => self.filter = Filter::Id(*id),
+                                    Err(_) => {
+                                        // Since it errors it will be a string !
+                                        self.filter = Filter::Name(self.searchbar.borrow().clone());
+                                    }
+                                }
+                            }
+                        });
+                        
+                        ui.add_space(4.0);
                         ui.horizontal(|ui| {
                             ui.add_sized([width * 0.4, 25.0], egui::Label::new("Header Image"));
                             ui.add_sized([width * 0.27, 25.0], egui::Label::new("Game"));
@@ -357,7 +397,13 @@ impl eframe::App for App {
                                     self.games.lock().unwrap().clone()
                                 };
 
-                                for (i, game) in t.iter().enumerate() {
+                                for (i, game) in t.iter().filter(|(gid, g)| {
+                                    match &self.filter {
+                                        Filter::Id(id) => id == *gid,
+                                        Filter::Name(name) => g.details.name.to_lowercase().starts_with(&*name.to_lowercase()),
+                                        Filter::None => true,
+                                    }
+                                }).enumerate() {
                                    ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                                         self.buffer.clear();
                                         write!(&mut self.buffer, "file://icons/{}.jpg", game.0).unwrap();
