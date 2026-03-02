@@ -12,7 +12,9 @@
 - [x] Add tool: Uninstall  
 - [X] Add tool: View  
 - [X] Add Window: Settings
-- [ ] Search Bar
+- [X] Search Bar
+- [ ] Moving Mod, Plugins buttons down a bit for more space
+- [ ] Improving Settings by adding (Start, Restart, Close Steam)
 
 ---
 
