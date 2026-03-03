@@ -1,4 +1,19 @@
-# 🧰 Steamtools
+<h1 align="center">🧰Steamtools</h1>
+
+
+<p align="center">
+  <img src="https://img.shields.io/github/v/tag/RealViper8/steamtools" />
+  <img src="https://img.shields.io/github/downloads/RealViper8/steamtools/total" />
+  <img src="https://img.shields.io/github/last-commit/RealViper8/steamtools" />
+  <img src="https://img.shields.io/github/issues-raw/RealViper8/steamtools" />
+  <img src="https://img.shields.io/github/repo-size/RealViper8/steamtools" />
+</p>
+
+<!-- ![Github Tag](https://img.shields.io/github/v/tag/RealViper8/steamtools)
+![Github all Downloads](https://img.shields.io/github/downloads/RealViper8/steamtools/total)
+![Github Last Commit](https://img.shields.io/github/last-commit/RealViper8/steamtools)
+![Github Issues](https://img.shields.io/github/issues-raw/RealViper8/steamtools)
+![GitHub repo size](https://img.shields.io/github/repo-size/RealViper8/steamtools) -->
 
 **Steamtools** is a lightweight tool written in **Rust** that allows you to easily **view, install, and remove Lua Manifests**. The source code of the proxy dll: xinput1_4.dll is currently not available since I only ship the binary for it. May **change** in  the **future** !
 
