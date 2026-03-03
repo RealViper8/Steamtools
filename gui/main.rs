@@ -1,12 +1,14 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem="windows")]
+// #![cfg_attr(not(debug_assertions), windows_subsystem="windows")]
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Write;
+use std::fs::OpenOptions;
 use std::process;
 use std::{fs, path::PathBuf, process::exit, sync::{Arc, Mutex}, thread};
 
 use egui_extras::install_image_loaders;
+use log::{warn, info, debug, error};
 use serde::{Serialize, Deserialize};
 use eframe::egui::{self, FontData, FontDefinitions, FontId, RichText, Sense, UiBuilder, vec2};
 use steamtools::{Game, Steam, get_games};
@@ -83,6 +85,7 @@ impl App {
                 app.version = serde_json::from_str::<String>(&version).unwrap();
                 if VERSION != &app.version && let Some(dir) = eframe::storage_dir("steamtools") {
                     fs::remove_dir_all(dir).unwrap();
+                    fs::remove_dir_all("icons").unwrap();
                     #[cfg(not(target_os = "windows"))]
                     rfd::MessageDialog::new()
                         .set_title("Info")
@@ -90,19 +93,22 @@ impl App {
                         .set_description("Restart Steamtools !")
                         .show();
                     #[cfg(target_os = "windows")] {
+                        let exe = std::env::current_exe().unwrap();
                         #[cfg(debug_assertions)] {
-                            let exe = std::env::current_exe().unwrap();
+                            std::process::Command::new(exe)
+                                // .creation_flags(0x00000008) // DETACHED PROCESS
+                                .spawn()
+                                .ok();
+                        }
+
+                        #[cfg(not(debug_assertions))] {
                             use std::os::windows::process::CommandExt;
                             std::process::Command::new(exe)
                                 .creation_flags(0x00000008) // DETACHED PROCESS
                                 .spawn()
                                 .ok();
                         }
-                        // #[cfg(not(debug_assertions))]
-                        // std::process::Command::new(exe)
-                        //     .creation_flags(0x00000008) // DETACHED PROCESS
-                        //     .spawn()
-                        //     .ok();
+
                         rfd::MessageDialog::new()
                             .set_title("Info")
                             .set_buttons(rfd::MessageButtons::Ok)
@@ -439,7 +445,6 @@ impl eframe::App for App {
 
                                     fs::remove_file(&p).ok();
                                     self.delete_request = Some(game.appid);
-                                    // self.loaded = false;
                                 }
                             });
                         } else {
@@ -453,6 +458,7 @@ impl eframe::App for App {
 
                 egui::CentralPanel::default().show(ctx, |ui| {
                     egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
+                        ui.add_space(5.0);
                         ui.horizontal_wrapped(|ui| {
                             ui.spacing_mut().item_spacing = egui::vec2(12.0, 12.0);
                             let game_map = {
@@ -533,6 +539,17 @@ impl eframe::App for App {
 }
 
 fn main() -> eframe::Result<()> {
+    let log_file = OpenOptions::new().create(true).append(true).open("steamtools.log").unwrap();
+    env_logger::Builder::new()
+        .parse_filters("stcli=debug,wgpu=off")
+        .format_source_path(true)
+        .target(env_logger::Target::Pipe(Box::new(log_file)))
+        .init();
+
+    warn!("GUI: {}", "Test");
+    info!("Test");
+    info!("Test");
+
     let options = eframe::NativeOptions {
         centered: true,
         viewport: egui::ViewportBuilder::default().with_taskbar(true).with_inner_size([650.0, 370.0]).with_min_inner_size([650.0, 370.0]).with_icon(eframe::icon_data::from_png_bytes(include_bytes!("../icon.png")).unwrap()),

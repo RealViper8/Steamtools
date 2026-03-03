@@ -10,3 +10,4 @@ steam.bin
 /plugins
 /benches
 .env
+steamtools.log
