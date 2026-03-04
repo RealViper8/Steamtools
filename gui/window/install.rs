@@ -1,6 +1,7 @@
 use crate::{stack_buffer, utils::stack::StackBuffer, window::WindowPopup};
 use std::{fmt::Write, fs::File, io::{self, Error, ErrorKind, Write as ioWrite}, path::{MAIN_SEPARATOR, Path}};
 use eframe::{egui::Window};
+use log::debug;
 
 const MANIFESTS_URL: &str = "https://raw.githubusercontent.com/SteamAutoCracks/ManifestHub/refs/heads";
 
@@ -30,7 +31,7 @@ fn install(path: &String, appid: i32) -> io::Result<()> {
     let mut file = File::create_new(sb.as_str())?;
     file.write_all(&resp.bytes().unwrap())?;
 
-    dbg!(sb.as_str());
+    debug!("Downloaded lua file: {}", sb.as_str());
     rfd::MessageDialog::new()
         .set_title("Success")
         .set_description("Lua file founded and downloaded!")
