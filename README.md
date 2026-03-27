@@ -29,6 +29,15 @@
 
 ---
 
+## 🚀 Getting Started
+
+1. Download the latest release from the [Releases](https://github.com/Viper-bit/Steamtools/releases) page.
+2. Ensure the **Prerequisites** listed below are installed on your system.
+3. Place the `xinput1_4.dll` in the appropriate game or Steam directory (as per your specific use case).
+4. Run `Steamtools.exe` to manage your manifests and plugins.
+
+---
+
 ## Donating
 
 Since this is a personal project and I invest my free time in making this you could support me by donating!
