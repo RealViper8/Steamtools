@@ -541,22 +541,20 @@ impl eframe::App for App {
 
 fn main() -> eframe::Result<()> {
     #[cfg(not(debug_assertions))] {
+        use env_logger::Env;
         use std::fs::OpenOptions;
         let log_file = OpenOptions::new().create(true).append(true).open("steamtools.log").unwrap();
-        env_logger::Builder::new()
-            .parse_filters("info,stcli=debug,steamtools=debug,wgpu=off")
-            .format_source_path(true)
+        env_logger::Builder::from_env(Env::default().default_filter_or("info,stcli=debug,steamtools=debug,wgpu=off"))
             .target(env_logger::Target::Pipe(Box::new(log_file)))
             .init();
     }
 
     #[cfg(debug_assertions)] {
-        env_logger::Builder::new()
-            .parse_filters("info,stcli=debug,steamtools=debug,wgpu=off")
+        use env_logger::Env;
+        env_logger::Builder::from_env(Env::default().default_filter_or("info,stcli=debug,steamtools=debug,wgpu=off"))
             .init();
     }
 
-    trace!("sage");
     info!("GUI: Initializing");
 
     let options = eframe::NativeOptions {
