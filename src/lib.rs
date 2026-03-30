@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use reqwest::blocking;
 use serde::{Serialize, Deserialize};
+use log::{debug, info, error};
 // use crate::st::{Lua, init_lua};
 
 pub mod st;
@@ -150,7 +151,7 @@ pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Ga
     .filter_map(|entry| {
         let fname = entry.file_name().into_string().ok()?;
         if fname.starts_with("appmanifest_") && fname.ends_with(".acf") {
-            dbg!(&fname);
+            debug!("Game found: {}", &fname);
             let id_part = &fname["appmanifest_".len()..fname.len() - ".acf".len()];
             let id = id_part.parse::<u32>().unwrap();
             let mut file_ptbuf = gp.to_path_buf();
@@ -175,7 +176,7 @@ pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Ga
     })
     .collect();
 
-    dbg!(&installed);
+    debug!("Installed Games: {:#?}", installed);
 
     let mut icons: Option<HashMap<u32, PathBuf>> = None;
     if Path::new("icons").exists() {
@@ -217,12 +218,12 @@ pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Ga
             }
 
             let url = format!("{}{}", STEAM_URL, appid.display());
-            println!("[FETCHING] {}", appid.display());
-            dbg!(&url);
+            info!("Fetching {}", appid.display());
+            debug!("Fetching image: {}", &url);
             let resp: HashMap<String, GameDetails> = match blocking::get(url).ok().unwrap().json() {
                 Ok(r) => r,
                 Err(e) => {
-                    eprintln!("[FETCHING ERROR] {}", e);
+                    error!("Fetching: {e}");
                     continue;
                 }
             };
@@ -233,7 +234,7 @@ pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Ga
                 appid: appid.to_string_lossy().to_string().parse::<u32>().unwrap(),
                 details: if let Some(r) = resp.get(&appid.to_string_lossy().to_string()) && let Some(data) = &r.data{
                         if !Path::new(&format!("icons/{}.jpg", appid.display())).exists() {
-                            println!("[ASSETS] {}", data.name);
+                            debug!("Image Asset: {} done", data.name);
                             DirBuilder::new().recursive(true).create("icons").unwrap();
                             let bytes = blocking::get(&data.header_image).unwrap().bytes().unwrap_or_default();
                             let mut file = File::create(format!("icons/{}.jpg", appid.display())).unwrap();

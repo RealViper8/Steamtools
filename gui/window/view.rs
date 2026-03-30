@@ -12,8 +12,7 @@ pub enum ViewState {
 #[derive(Default)]
 pub struct ViewPopup {
     pub active: bool,
-    pub game_id: u32,
-    pub current_game: usize,
+    pub current_game: u32,
     pub state: ViewState
 }
 
@@ -29,7 +28,7 @@ impl WindowPopup for ViewPopup {
                 ViewState::Main => {
                     ui.vertical_centered(|ui| {
                         app.buffer.clear();
-                        write!(&mut app.buffer, "APPID: {}", app.view.game_id).unwrap();
+                        write!(&mut app.buffer, "APPID: {}", app.view.current_game).unwrap();
                         ui.label(&app.buffer);
                         app.buffer.clear();
                     });
