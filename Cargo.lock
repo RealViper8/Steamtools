@@ -1261,11 +1261,11 @@ dependencies = [
 
 [[package]]
 name = "egui_code_editor"
-version = "0.2.21"
+version = "0.2.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70addd812d64b30d2adabdc4598c648f4fb38cac5df641260b1996efdf22851f"
+checksum = "3633490f8dd567bba6daad40d8e33c69fab4c00bdc075cd19bd0028543c888c2"
 dependencies = [
- "egui 0.33.3",
+ "egui 0.34.1",
 ]
 
 [[package]]
@@ -1438,7 +1438,6 @@ dependencies = [
  "ahash",
  "ecolor 0.33.3",
  "emath 0.33.3",
- "epaint_default_fonts 0.33.3",
  "log",
  "nohash-hasher",
  "parking_lot",
@@ -1455,7 +1454,7 @@ dependencies = [
  "bytemuck",
  "ecolor 0.34.1",
  "emath 0.34.1",
- "epaint_default_fonts 0.34.1",
+ "epaint_default_fonts",
  "font-types",
  "log",
  "nohash-hasher",
@@ -1467,12 +1466,6 @@ dependencies = [
  "smallvec",
  "vello_cpu",
 ]
-
-[[package]]
-name = "epaint_default_fonts"
-version = "0.33.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c4fbe202b6578d3d56428fa185cdf114a05e49da05f477b3c7f0fbb221f1862"
 
 [[package]]
 name = "epaint_default_fonts"
@@ -3286,7 +3279,7 @@ version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c80231409c20246a13fddb31776fb942c38553c51e871f8cbd687a4cfb5843d"
 dependencies = [
- "phf_shared",
+ "phf_shared 0.11.3",
  "rand 0.8.6",
 ]
 

@@ -37,7 +37,7 @@ opt-level = 3
 [dependencies]
 # egui
 eframe = { version = "0.34.1", features = ["wgpu", "persistence"] }
-egui_code_editor = "0.2.21"
+egui_code_editor = "0.2.24"
 egui_extras = { version = "0.33.3", features = ["all_loaders"] }
 # egui extra modules, tree sitter for code editor & image support
 image = { version = "0.25.9", features = ["jpeg"] }
