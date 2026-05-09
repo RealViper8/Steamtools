@@ -1,6 +1,6 @@
 use std::{fs, ops::{Index, IndexMut}, path::Path, sync::{Arc, Mutex}, thread};
 
-use eframe::egui::{self, Context, FontId, Label, RichText};
+use eframe::egui::{self, FontId, Label, RichText};
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
 use steamtools::st::{run_lua_file, start_file, stop_file};
 use crate::{App, window::WindowPopup};
@@ -22,8 +22,8 @@ pub struct Plugins {
 }
 
 impl WindowPopup for Plugins {
-    fn view(app: &mut App, ctx: &Context) {
-        egui::Window::new("Plugins").default_size([0.0, 0.0]).open(&mut app.plugins.active).show(ctx, |ui| {
+    fn view(app: &mut App, ui: &mut egui::Ui) {
+        egui::Window::new("Plugins").default_size([0.0, 0.0]).open(&mut app.plugins.active).show(ui, |ui| {
             if !app.plugins.fetched {
                 if !Path::new("./plugins").exists() {fs::create_dir("./plugins").unwrap()}
                 let dirs = fs::read_dir("./plugins").unwrap();
@@ -112,16 +112,16 @@ impl Plugins {
         }
     }
 
-    pub fn ceditor(app: &mut App, ctx: &Context) {
+    pub fn ceditor(app: &mut App, ui: &mut egui::Ui) {
         if app.plugins.ceditor {
-            ctx.show_viewport_immediate(
+            ui.show_viewport_immediate(
                 egui::ViewportId::from_hash_of("immediate_code_editor"),
                 egui::ViewportBuilder::default()
                     .with_title("Code Editor")
                     .with_inner_size([320.0, 150.0])
                     .with_min_inner_size([320.0, 150.0]),
-                |ctx, _class| {
-                egui::TopBottomPanel::top("menu").show(ctx, |ui| {
+                |ui, _class| {
+                egui::Panel::top("menu").show_inside(ui, |ui| {
                     ui.horizontal(|ui| {
                         let len = app.plugins.list.len();
                         if ui.button("\u{1F5D1}").clicked() {
@@ -148,8 +148,8 @@ impl Plugins {
                     return;
                 }
 
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    let viewport_size = ctx.available_rect().size();
+                egui::CentralPanel::default().show_inside(ui, |ui| {
+                    let viewport_size = ui.content_rect().size();
                     ui.vertical(|ui| {
                         let syntax: Syntax = Syntax::lua();
                         CodeEditor::default()
@@ -161,7 +161,7 @@ impl Plugins {
                     });
                 });
 
-                if ctx.input(|i| i.viewport().close_requested()) {
+                if ui.input(|i| i.viewport().close_requested()) {
                     app.plugins.ceditor = false;
                 }
             });

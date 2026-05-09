@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use eframe::egui::{self, Context};
+use eframe::egui;
 use crate::{App, window::WindowPopup};
 
 #[derive(Debug, Default)]
@@ -17,8 +17,8 @@ pub struct ViewPopup {
 }
 
 impl WindowPopup for ViewPopup {
-    fn view(app: &mut App, ctx: &Context) {
-        egui::Window::new("View").default_size([0.0, 0.0]).open(&mut app.view.active).show(ctx, |ui| {
+    fn view(app: &mut App, ui: &mut egui::Ui) {
+        egui::Window::new("View").default_size([0.0, 0.0]).open(&mut app.view.active).show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.horizontal(|ui| {
                     if ui.button("\u{1F3E0} Home").clicked() { app.view.state = ViewState::Main };

@@ -1,6 +1,6 @@
 use crate::{stack_buffer, utils::stack::StackBuffer, window::WindowPopup};
 use std::{fmt::Write, fs::File, io::{self, Error, ErrorKind, Write as ioWrite}, path::{MAIN_SEPARATOR, Path}};
-use eframe::{egui::Window};
+use eframe::egui::{self, Window};
 use log::debug;
 
 const MANIFESTS_URL: &str = "https://raw.githubusercontent.com/SteamAutoCracks/ManifestHub/refs/heads";
@@ -51,8 +51,8 @@ impl Default for InstallPopup {
 }
 
 impl WindowPopup for InstallPopup {
-    fn view(app: &mut crate::App, ctx: &eframe::egui::Context) {
-        Window::new("Install").default_size([0.0, 0.0]).open(&mut app.install.active).show(ctx, |ui| {
+    fn view(app: &mut crate::App, ui: &mut egui::Ui) {
+        Window::new("Install").default_size([0.0, 0.0]).open(&mut app.install.active).show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.horizontal(|ui| {
                     // ui.label(RichText::new("Install").font(FontId::proportional(20.0)));

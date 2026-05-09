@@ -7,6 +7,7 @@ use std::process;
 use std::{fs, path::PathBuf, sync::{Arc, Mutex}, thread};
 
 use egui_extras::install_image_loaders;
+#[allow(unused_imports)]
 use log::{warn, info, debug, error, trace};
 use serde::{Serialize, Deserialize};
 use eframe::egui::{self, FontData, FontDefinitions, FontId, RichText, Sense, UiBuilder, vec2};
@@ -172,10 +173,10 @@ impl eframe::App for App {
         storage.set_string("unlock", serde_json::to_string(&self.unlock).unwrap());
     }
 
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         match self.state {
             State::Setup => {
-                egui::CentralPanel::default().show(ctx, |ui| {
+                egui::CentralPanel::default().show_inside(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.label(RichText::new("Setup").font(FontId::proportional(20.0)));
                     });
@@ -217,7 +218,7 @@ impl eframe::App for App {
                 });
             }
             State::Settings => {
-                egui::CentralPanel::default().show(ctx, |ui| {
+                egui::CentralPanel::default().show_inside(ui, |ui| {
                     ui.vertical(|ui| {
                         ui.vertical_centered(|ui| {
                             ui.label(RichText::new("Settings").font(FontId::proportional(20.0)));
@@ -227,7 +228,7 @@ impl eframe::App for App {
                     });
                 });
 
-                egui::TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
+                egui::Panel::bottom("status_panel").show_inside(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.add_space(5.0);
                         if ui.button(RichText::new("↩ Back").font(FontId::proportional(15.0))).clicked() {
@@ -238,7 +239,7 @@ impl eframe::App for App {
                 });
             }
             State::MainMenu => {
-                egui::TopBottomPanel::bottom("status_panel").max_height(30.0).show(ctx, |ui| {
+                egui::Panel::bottom("status_panel").max_size(30.0).show_inside(ui, |ui| {
                     ui.centered_and_justified(|ui| {
                         ui.horizontal(|ui| {
                             ui.label("Made by");
@@ -250,13 +251,13 @@ impl eframe::App for App {
                     });
                 });
 
-                ViewPopup::view(self, ctx); 
-                Plugins::view(self, ctx);
-                Plugins::ceditor(self, ctx);
-                ModsPopup::view(self, ctx);
-                InstallPopup::view(self, ctx);
+                ViewPopup::view(self, ui); 
+                Plugins::view(self, ui);
+                Plugins::ceditor(self, ui);
+                ModsPopup::view(self, ui);
+                InstallPopup::view(self, ui);
 
-                egui::TopBottomPanel::top("top").show(ctx, |ui| {
+                egui::Panel::top("top").show_inside(ui, |ui| {
                     ui.vertical(|ui| {
                         ui.horizontal(|ui| {
                             ui.add_space(5.0);
@@ -387,7 +388,7 @@ impl eframe::App for App {
                     });
                 });
 
-                egui::SidePanel::right("game_stats").exact_width(140.0).show_separator_line(true).resizable(false).show(ctx, |ui| {
+                egui::Panel::right("game_stats").exact_size(140.0).show_separator_line(true).resizable(false).show_inside(ui, |ui| {
                     let width = ui.available_width();
                     let height = ui.available_height();
                     ui.vertical_centered(|ui| {
@@ -456,7 +457,7 @@ impl eframe::App for App {
                     });
                 });
 
-                egui::CentralPanel::default().show(ctx, |ui| {
+                egui::CentralPanel::default().show_inside(ui, |ui| {
                     egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
                         ui.add_space(5.0);
                         ui.horizontal_wrapped(|ui| {
@@ -515,7 +516,7 @@ impl eframe::App for App {
                 });
 
                 if !self.loaded {
-                    ctx.request_repaint();
+                    ui.request_repaint();
                     let s = self.st.path.clone();
                     let games_arc = self.games.clone();
                     thread::spawn(move || {

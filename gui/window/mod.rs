@@ -1,7 +1,7 @@
-use eframe::egui::Context;
+use eframe::egui;
 use crate::App;
 pub trait WindowPopup {
-    fn view(app: &mut App, ctx: &Context);
+    fn view(app: &mut App, ui: &mut egui::Ui);
 }
 
 mod mods;

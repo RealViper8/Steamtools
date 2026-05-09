@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::path::Path;
 
+use eframe::egui;
 use steamtools::{install_melonloader};
 
 use crate::STEAM_BINARY_PATH;
@@ -14,8 +15,8 @@ pub struct ModsPopup {
 }
 
 impl WindowPopup for ModsPopup {
-    fn view(app: &mut crate::App, ctx: &eframe::egui::Context) {
-        Window::new("Mods").default_size([0.0, 0.0]).open(&mut app.mods.active).show(ctx, |ui| {
+    fn view(app: &mut crate::App, ui: &mut egui::Ui) {
+        Window::new("Mods").default_size([0.0, 0.0]).open(&mut app.mods.active).show(ui, |ui| {
         ui.vertical_centered(|ui| {
                 ui.label("APPID:");
                 ui.add(
