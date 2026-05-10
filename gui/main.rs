@@ -10,7 +10,7 @@ use egui_extras::install_image_loaders;
 #[allow(unused_imports)]
 use log::{warn, info, debug, error, trace};
 use serde::{Serialize, Deserialize};
-use eframe::egui::{self, FontData, FontDefinitions, FontId, RichText, Sense, UiBuilder, vec2};
+use eframe::egui::{self, Color32, FontData, FontDefinitions, FontId, RichText, Sense, UiBuilder, vec2};
 use steamtools::{Game, Steam, get_games};
 
 mod window;
@@ -93,21 +93,6 @@ impl App {
                         .set_description("Restart Steamtools !")
                         .show();
                     #[cfg(target_os = "windows")] {
-                        // let exe = std::env::current_exe().unwrap();
-                        // #[cfg(debug_assertions)] {
-                        //     std::process::Command::new(exe)
-                        //         // .creation_flags(0x00000008) // DETACHED PROCESS
-                        //         .spawn()
-                        //         .ok();
-                        // }
-
-                        // #[cfg(not(debug_assertions))] {
-                        //     use std::os::windows::process::CommandExt;
-                        //     std::process::Command::new(exe)
-                        //         .creation_flags(0x00000008) // DETACHED PROCESS
-                        //         .spawn()
-                        //         .ok();
-                        // }
                         app.state = State::Setup;
                         rfd::MessageDialog::new()
                             .set_title("Info")
@@ -218,17 +203,7 @@ impl eframe::App for App {
                 });
             }
             State::Settings => {
-                egui::CentralPanel::default().show_inside(ui, |ui| {
-                    ui.vertical(|ui| {
-                        ui.vertical_centered(|ui| {
-                            ui.label(RichText::new("Settings").font(FontId::proportional(20.0)));
-                        });
-                        ui.checkbox(&mut self.settings.mod_experimental, "Mods feature (Experimental)");
-                        ui.checkbox(&mut self.settings.plugins_experimental, "Plugins feature (Experimental)")
-                    });
-                });
-
-                egui::Panel::bottom("status_panel").show_inside(ui, |ui| {
+                egui::Panel::bottom("status_panel").show_separator_line(false).show_inside(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.add_space(5.0);
                         if ui.button(RichText::new("↩ Back").font(FontId::proportional(15.0))).clicked() {
@@ -237,6 +212,40 @@ impl eframe::App for App {
                         ui.add_space(5.0);
                     });
                 });
+
+                egui::CentralPanel::default().show_inside(ui, |ui| {
+                    ui.vertical(|ui| {
+                        ui.vertical_centered(|ui| {
+                            ui.label(RichText::new("Settings").font(FontId::proportional(20.0)));
+                        });
+
+                        ui.label(RichText::new("Steamtools").font(FontId::proportional(20.0)));
+
+                        ui.checkbox(&mut self.settings.mod_experimental, "Mods feature (Experimental)");
+                        ui.checkbox(&mut self.settings.plugins_experimental, "Plugins feature (Experimental)");
+                    });
+
+                    ui.add_space(5.0);
+
+                    ui.vertical(|ui| {
+                        ui.label(RichText::new("Steam").font(FontId::proportional(20.0)));
+                        ui.horizontal(|ui|{
+                            ui.vertical(|ui| {
+                                if ui.button("Start").clicked() {
+                                    #[cfg(target_os = "windows")]
+                                    std::process::Command::new("cmd").args(["/C", "start steam://rungameid/0"]).spawn().unwrap();   
+                                }
+                            });
+                            ui.vertical(|ui| {
+                                if ui.button("Close").clicked() {
+                                    #[cfg(target_os = "windows")]
+                                    std::process::Command::new("cmd").args(["/C", "taskkill /f /im steam.exe"]).spawn().unwrap();   
+                                }
+                            });
+                        });
+                    });
+                });
+
             }
             State::MainMenu => {
                 egui::Panel::bottom("status_panel").max_size(30.0).show_inside(ui, |ui| {
@@ -244,8 +253,10 @@ impl eframe::App for App {
                         ui.horizontal(|ui| {
                             ui.label("Made by");
                             ui.hyperlink_to("RealViper", "https://github.com/RealViper8/Steamtools");
-                            ui.add_space((ui.available_width()/2.0)+85.0);
-                            ui.label(format!("Version: {}", VERSION));
+                            let text = format!("Version: {}", VERSION);
+                            let size = ui.painter().layout(text.clone(), FontId::default(), Color32::BLACK, f32::INFINITY).rect.width();
+                            ui.add_space(ui.available_width()-size);
+                            ui.label(text);
                         });
 
                     });
@@ -389,9 +400,9 @@ impl eframe::App for App {
                 });
 
                 egui::Panel::right("game_stats").exact_size(140.0).show_separator_line(true).resizable(false).show_inside(ui, |ui| {
-                    let width = ui.available_width();
-                    let height = ui.available_height();
                     ui.vertical_centered(|ui| {
+                        let width = ui.available_width();
+                        let height = ui.available_height();
                         let selected_game = self.selected_game.get();
                         if selected_game != 0 {
                             let game = self.games.lock().unwrap();
@@ -402,7 +413,7 @@ impl eframe::App for App {
                             ui.add_space(8.0);
                             ui.vertical_centered_justified(|ui| {
                                 if game.installed {
-                                    if ui.add_sized(vec2(50.0,25.0), egui::Button::new(RichText::new("\u{1F5D1} Uninstall").strong().raised())).on_hover_text("Prompts steam to uninstall the game").clicked() {
+                                    if ui.add_sized(vec2((width * 0.1).clamp(50.0, 70.0), (height * 0.1).clamp(25.0, 45.0)), egui::Button::new(RichText::new("\u{1F5D1} Uninstall").strong().raised())).on_hover_text("Prompts steam to uninstall the game").clicked() {
                                         self.buffer.clear();
                                         write!(&mut self.buffer, "start steam://uninstall/{}", game.appid).unwrap();
                                         #[cfg(target_os="windows")]
@@ -410,7 +421,7 @@ impl eframe::App for App {
                                         self.buffer.clear();
                                     }
                                 } else {
-                                    if ui.add_sized(vec2(50.0, 25.0), egui::Button::new(RichText::new("\u{2795} Install").strong().raised())).on_hover_text("Prompts steam to install the game").clicked() {
+                                    if ui.add_sized(vec2((width * 0.1).clamp(50.0, 70.0), (height * 0.1).clamp(25.0, 45.0)), egui::Button::new(RichText::new("\u{2795} Install").strong().raised())).on_hover_text("Prompts steam to install the game").clicked() {
                                         self.buffer.clear();
                                         write!(&mut self.buffer, "start steam://install/{}", game.appid).unwrap();
                                         #[cfg(target_os="windows")]
@@ -419,12 +430,12 @@ impl eframe::App for App {
                                     }
                                 }
                                 ui.add_space(2.0);
-                                if ui.add_sized([width * 0.3, height * 0.1], egui::Button::new(RichText::new("\u{1F50D} View").strong())).on_hover_text("View information about the game").clicked() {
+                                if ui.add_sized(vec2((width * 0.1).clamp(50.0, 70.0), (height * 0.1).clamp(25.0, 45.0)), egui::Button::new(RichText::new("\u{1F50D} View").strong())).on_hover_text("View information about the game").clicked() {
                                     self.view.current_game = game.appid;
                                     self.view.active = true;
                                 }
                                 ui.add_space(2.0);
-                                if ui.add_sized([width * 0.3, height * 0.1], egui::Button::new(RichText::new("Remove").strong())).on_hover_text("Removes the game from your Account").clicked() {
+                                if ui.add_sized(vec2((width * 0.1).clamp(50.0, 70.0), (height * 0.1).clamp(25.0, 45.0)), egui::Button::new(RichText::new("Remove").strong())).on_hover_text("Removes the game from your Account").clicked() {
                                     let mut p = PathBuf::from(&self.st.path);
                                     p.push("config");
                                     p.push("stplug-in");
@@ -501,7 +512,7 @@ impl eframe::App for App {
                                     ui.painter().rect_stroke(
                                         card_resp.rect.expand(4.0),
                                         10.0,
-                                        egui::Stroke::new(2.0, ui.visuals().selection.stroke.color),
+                                        egui::Stroke::new(2.0f32, ui.visuals().selection.stroke.color),
                                         egui::StrokeKind::Middle
                                     );
                                 }

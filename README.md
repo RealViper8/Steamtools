@@ -29,12 +29,13 @@
 - [X] Add Window: Settings
 - [X] Search Bar
 - [ ] Moving Mod, Plugins buttons down a bit for more space
-- [ ] Improving Settings by adding (Start, Restart, Close Steam)
+- [X] Improving Settings by adding (Start, Restart, Close Steam)
 
 ---
 
 ## ⚙️ Planned Side Features
 
+- [ ] Linux Suport?
 - [X] Add MelonModLoader support
 - [X] Add Lua Plugin support
   - [X] Basic Support (1 active running plugin)
