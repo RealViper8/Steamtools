@@ -70,4 +70,8 @@ SOL: GYepZXvMAyQ8y54HuWx8QR3yBBg9EFEqn7dDJo93GbTM (SOL Network)
 
 ![GUI Rework](0.5.1.png)
 
+### v0.6.4
+
+![GUI](0.6.4.png)
+
 ![Alt](https://repobeats.axiom.co/api/embed/0c1c32f9f6d0794bc572fbb52c48eea466d46477.svg "Repobeats analytics image")
