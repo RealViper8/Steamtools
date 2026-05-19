@@ -3,6 +3,8 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Write;
+use std::fs::File;
+use std::path::Path;
 use std::process;
 use std::{fs, path::PathBuf, sync::{Arc, Mutex}, thread};
 
@@ -132,6 +134,11 @@ impl App {
             storage_ref.get_string("unlock" ).map(|unlock| {
                 app.unlock = serde_json::from_str(&unlock).unwrap();
             });
+        }
+
+        if app.cached_games.0.is_empty() && Path::new(STEAM_BINARY_PATH).exists() {
+            let mut file = File::open(STEAM_BINARY_PATH).unwrap();
+            app.cached_games.0 = GameMap::read_from(&mut file).unwrap();
         }
 
         #[cfg(target_os = "windows")]
