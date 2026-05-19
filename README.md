@@ -17,6 +17,9 @@
 
 **Steamtools** is a lightweight tool written in **Rust** that allows you to easily **view, install, and remove Lua Manifests**. The source code of the proxy dll: xinput1_4.dll is currently not available since I only ship the binary for it. May **change** in  the **future** !
 
+> [!NOTE]
+> if you have 200+ Games (with steamtools) and try to open it for the first time without having all the icons cached there **may** be an issue since steam api will rate limit the request.
+
 ---
 
 ## 🗓️ TODO
