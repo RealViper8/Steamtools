@@ -312,9 +312,15 @@ impl eframe::App for App {
                                             .set_title("Steamtools Lua")
                                             .pick_files();
 
+                                    
                                     let mut path: PathBuf = PathBuf::new();
                                     path.push(&self.st.path);
                                     path.push("config\\stplug-in");
+
+                                    if !Path::new(&path).exists() {
+                                        fs::create_dir(&path).unwrap();
+                                    }
+
                                     match files {
                                         Some(ref files) => {
                                             files.iter().for_each(|file| {
