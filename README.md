@@ -38,7 +38,7 @@
 
 ## ⚙️ Planned Side Features
 
-- [ ] Linux Suport?
+- [ ] Linux Support?
 - [X] Add MelonModLoader support
 - [X] Add Lua Plugin support
   - [X] Basic Support (1 active running plugin)
