@@ -1,4 +1,7 @@
-use std::{collections::HashMap, io::{self, BufReader, BufWriter, Read, Write}};
+use std::{
+    collections::HashMap,
+    io::{self, BufReader, BufWriter, Read, Write},
+};
 use steamtools::{AppData, Game};
 
 fn write_string(file: &mut impl Write, s: &str) -> io::Result<()> {
@@ -7,7 +10,11 @@ fn write_string(file: &mut impl Write, s: &str) -> io::Result<()> {
     Ok(())
 }
 
-fn read_string(reader: &mut impl Read, len_buf: &mut [u8; 4], buf: &mut Vec<u8>) -> io::Result<String> {
+fn read_string(
+    reader: &mut impl Read,
+    len_buf: &mut [u8; 4],
+    buf: &mut Vec<u8>,
+) -> io::Result<String> {
     reader.read_exact(len_buf)?;
     let len = u32::from_le_bytes(*len_buf) as usize;
 
@@ -16,9 +23,8 @@ fn read_string(reader: &mut impl Read, len_buf: &mut [u8; 4], buf: &mut Vec<u8>)
     }
 
     reader.read_exact(&mut buf[..len])?;
-    let s = String::from_utf8(buf[..len].to_vec()).map_err(|e| {
-        io::Error::new(io::ErrorKind::InvalidData, e)
-    })?;
+    let s = String::from_utf8(buf[..len].to_vec())
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     Ok(s)
 }
@@ -32,7 +38,6 @@ impl GameMap {
 
         writer.write_all(&(map.len() as u32).to_le_bytes())?; // Length
         for (appid, game) in map {
-            
             // APPID, Key
             writer.write_all(&appid.to_le_bytes())?;
             writer.write_all(&(game.installed as u8).to_le_bytes())?;
@@ -61,7 +66,7 @@ impl GameMap {
         let mut res = Vec::<u8>::with_capacity(512);
         reader.read_exact(&mut buf)?;
         let count = u32::from_le_bytes(buf); // Length
-        
+
         let mut games = HashMap::<u32, Game>::new();
         for _ in 0..count {
             // Appid, Key
@@ -78,17 +83,20 @@ impl GameMap {
 
             let path = read_string(&mut reader, &mut buf, &mut res)?;
 
-            games.insert(appid, Game {
-                appid: appid,
-                installed,
-                path,
-                details: AppData {
-                    app_type,
-                    name,
-                    header_image,
-                    //pc_requirements
-                }
-            });
+            games.insert(
+                appid,
+                Game {
+                    appid: appid,
+                    installed,
+                    path,
+                    details: AppData {
+                        app_type,
+                        name,
+                        header_image,
+                        //pc_requirements
+                    },
+                },
+            );
         }
 
         Ok(games)

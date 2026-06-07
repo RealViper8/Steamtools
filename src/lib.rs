@@ -1,13 +1,14 @@
+use log::{debug, error, info};
+use reqwest::blocking;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, DirBuilder, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use reqwest::blocking;
-use serde::{Serialize, Deserialize};
-use log::{debug, info, error};
 // use crate::st::{Lua, init_lua};
 
+// importing x32 mod
 pub mod st;
 
 // Can get ip timeouted if user requests too much !!!
@@ -16,23 +17,24 @@ pub const STEAM_URL: &str = "https://store.steampowered.com/api/appdetails?appid
 // const STEAM_HEADER_URL: &str = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/";
 
 // Requires api key
-pub const STEAM_APPLIST_URL: &str = "https://api.steampowered.com/IStoreService/GetAppList/v1/?key=";
+pub const STEAM_APPLIST_URL: &str =
+    "https://api.steampowered.com/IStoreService/GetAppList/v1/?key=";
 
 const MELONLOADER_URL: &str = "https://github.com/LavaGang/MelonLoader/releases/download/v0.7.1/";
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct GameDetails {
-   success: bool,
-   data: Option<AppData>,
+    success: bool,
+    data: Option<AppData>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct AppData {
-    #[serde(rename="type")]
-   pub app_type: String, 
-   pub name: String, 
-   pub header_image: String,
-//    pub pc_requirements: HashMap<String, String>,
+    #[serde(rename = "type")]
+    pub app_type: String,
+    pub name: String,
+    pub header_image: String,
+    //    pub pc_requirements: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -63,18 +65,29 @@ pub fn install_melonloader(path: &str, melon_loader: bool) -> Option<()> {
                     .show();
                 return None;
             }
-            #[cfg(target_os="windows")]
+            #[cfg(target_os = "windows")]
             {
                 std::thread::spawn(|| {
-                    let bytes = blocking::get(format!("{}MelonLoader.Installer.exe", MELONLOADER_URL)).ok().unwrap().bytes().unwrap_or_default();
+                    let bytes =
+                        blocking::get(format!("{}MelonLoader.Installer.exe", MELONLOADER_URL))
+                            .ok()
+                            .unwrap()
+                            .bytes()
+                            .unwrap_or_default();
                     let mut file = File::create("MelonLoader/Loader.exe").unwrap();
                     file.write_all(&bytes).unwrap();
                     file.flush().unwrap();
-                    Command::new("cmd").args(["/C", ".\\MelonLoader\\Loader.exe"]).spawn().expect("Failed to open MelonLoader.");
+                    Command::new("cmd")
+                        .args(["/C", ".\\MelonLoader\\Loader.exe"])
+                        .spawn()
+                        .expect("Failed to open MelonLoader.");
                 });
             };
         } else {
-            Command::new("cmd").args(["/C", ".\\MelonLoader\\Loader.exe"]).spawn().expect("Failed to open MelonLoader.");
+            Command::new("cmd")
+                .args(["/C", ".\\MelonLoader\\Loader.exe"])
+                .spawn()
+                .expect("Failed to open MelonLoader.");
         }
     }
 
@@ -100,7 +113,7 @@ pub fn install_melonloader(path: &str, melon_loader: bool) -> Option<()> {
         let entry = match m {
             Ok(e) => e,
             Err(e) => {
-                println!("ERROR: {}",e );
+                println!("ERROR: {}", e);
                 continue;
             }
         };
@@ -111,8 +124,14 @@ pub fn install_melonloader(path: &str, melon_loader: bool) -> Option<()> {
         }
 
         dbg!(&PathBuf::from(path).file_name().unwrap().to_str().unwrap());
-        if pathb.file_stem().unwrap().to_str().unwrap() == PathBuf::from(path).file_name().unwrap().to_str().unwrap() {
-            fs::copy(pathb.file_name().unwrap(), format!("{}\\{}", &mods_path, pathb.file_name().unwrap().display())).ok()?;
+        if pathb.file_stem().unwrap().to_str().unwrap()
+            == PathBuf::from(path).file_name().unwrap().to_str().unwrap()
+        {
+            fs::copy(
+                pathb.file_name().unwrap(),
+                format!("{}\\{}", &mods_path, pathb.file_name().unwrap().display()),
+            )
+            .ok()?;
         }
     }
 
@@ -120,7 +139,10 @@ pub fn install_melonloader(path: &str, melon_loader: bool) -> Option<()> {
 }
 
 #[must_use]
-pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Game>) -> HashMap<u32, Game> {
+pub fn get_games(
+    path: impl Into<PathBuf> + Copy,
+    current_games: HashMap<u32, Game>,
+) -> HashMap<u32, Game> {
     let mut p = path.into();
     p.push("config");
     p.push("stplug-in");
@@ -143,10 +165,16 @@ pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Ga
     let installed: HashMap<u32, String> = match fs::read_dir(&gp) {
         Ok(entries) => entries,
         Err(e) => {
-            rfd::MessageDialog::new().set_level(rfd::MessageLevel::Error).set_buttons(rfd::MessageButtons::Ok).set_title("Error").set_description(e.to_string()).show();
+            rfd::MessageDialog::new()
+                .set_level(rfd::MessageLevel::Error)
+                .set_buttons(rfd::MessageButtons::Ok)
+                .set_title("Error")
+                .set_description(e.to_string())
+                .show();
             return games;
         }
-    }.filter_map(|res| res.ok())
+    }
+    .filter_map(|res| res.ok())
     .filter(|f| f.path().is_file())
     .filter_map(|entry| {
         let fname = entry.file_name().into_string().ok()?;
@@ -164,7 +192,14 @@ pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Ga
                 if line.starts_with("\"name\"") {
                     if let Some((_, value)) = line.split_once('"') {
                         if let Some((_, value)) = value.split_once('"') {
-                            name.insert(id, format!("{}\\steamapps\\common\\{}", Into::<PathBuf>::into(path).display(), value.trim()[1..value.len() - 3].to_string()));
+                            name.insert(
+                                id,
+                                format!(
+                                    "{}\\steamapps\\common\\{}",
+                                    Into::<PathBuf>::into(path).display(),
+                                    value.trim()[1..value.len() - 3].to_string()
+                                ),
+                            );
                         }
                     }
                 }
@@ -186,7 +221,15 @@ pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Ga
             let entry = entry.unwrap();
             let path = entry.path();
 
-            icons.as_mut().unwrap().insert(path.file_stem().unwrap().to_str().unwrap().parse::<u32>().unwrap(), path);
+            icons.as_mut().unwrap().insert(
+                path.file_stem()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .parse::<u32>()
+                    .unwrap(),
+                path,
+            );
         }
     }
 
@@ -205,7 +248,11 @@ pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Ga
             let appid_i = match appid.to_string_lossy().parse::<u32>() {
                 Ok(i) => i,
                 Err(_) => {
-                    rfd::MessageDialog::new().set_description(format!("Failed to parse {} please use appid. Skipping entry", appid.to_string_lossy()))
+                    rfd::MessageDialog::new()
+                        .set_description(format!(
+                            "Failed to parse {} please use appid. Skipping entry",
+                            appid.to_string_lossy()
+                        ))
                         .set_buttons(rfd::MessageButtons::Ok);
                     continue 'entries;
                 }
@@ -230,28 +277,37 @@ pub fn get_games(path: impl Into<PathBuf> + Copy, current_games: HashMap<u32, Ga
 
             let installed_val: bool = installed.contains_key(&appid_i);
 
-            games.insert(appid_i, Game {
-                appid: appid.to_string_lossy().to_string().parse::<u32>().unwrap(),
-                details: if let Some(r) = resp.get(&appid.to_string_lossy().to_string()) && let Some(data) = &r.data{
+            games.insert(
+                appid_i,
+                Game {
+                    appid: appid.to_string_lossy().to_string().parse::<u32>().unwrap(),
+                    details: if let Some(r) = resp.get(&appid.to_string_lossy().to_string())
+                        && let Some(data) = &r.data
+                    {
                         if !Path::new(&format!("icons/{}.jpg", appid.display())).exists() {
                             debug!("Image Asset: {} done", data.name);
                             DirBuilder::new().recursive(true).create("icons").unwrap();
-                            let bytes = blocking::get(&data.header_image).unwrap().bytes().unwrap_or_default();
-                            let mut file = File::create(format!("icons/{}.jpg", appid.display())).unwrap();
+                            let bytes = blocking::get(&data.header_image)
+                                .unwrap()
+                                .bytes()
+                                .unwrap_or_default();
+                            let mut file =
+                                File::create(format!("icons/{}.jpg", appid.display())).unwrap();
                             file.write_all(&bytes).unwrap();
                         }
                         data.clone()
                     } else {
                         AppData::default()
                     },
-                path: if installed_val {
-                    name.get(&appid_i).unwrap().to_string()
-                } else {
-                    String::new()
+                    path: if installed_val {
+                        name.get(&appid_i).unwrap().to_string()
+                    } else {
+                        String::new()
+                    },
+                    installed: installed_val,
+                    ..Default::default()
                 },
-                installed: installed_val,
-                ..Default::default() 
-            });
+            );
         }
     }
 
@@ -269,13 +325,26 @@ impl Game {
 impl Steam {
     #[must_use]
     pub fn new(path: Option<impl Into<String> + AsRef<str>>) -> Self {
-        let mut steam = Self { path: String::new(), cfg: PathBuf::new(), ..Default::default() };
+        let mut steam = Self {
+            path: String::new(),
+            cfg: PathBuf::new(),
+            ..Default::default()
+        };
         if let Some(p) = path {
             steam.path = p.into();
         } else {
-            #[cfg(target_os="windows")] { steam.path = String::from("C:\\Program Files (x86)\\Steam"); }
-            #[cfg(target_os="macos")] { steam.path = String::from("~/Library/Application Support/Steam"); }
-            #[cfg(target_os="linux")] { steam.path = String::from("~/.local/share/Steam"); }
+            #[cfg(target_os = "windows")]
+            {
+                steam.path = String::from("C:\\Program Files (x86)\\Steam");
+            }
+            #[cfg(target_os = "macos")]
+            {
+                steam.path = String::from("~/Library/Application Support/Steam");
+            }
+            #[cfg(target_os = "linux")]
+            {
+                steam.path = String::from("~/.local/share/Steam");
+            }
         }
 
         steam

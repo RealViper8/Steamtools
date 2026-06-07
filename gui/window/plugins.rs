@@ -249,4 +249,3 @@ impl IndexMut<usize> for Plugins {
         &mut self.list[index]
     }
 }
-

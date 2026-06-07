@@ -1,15 +1,21 @@
-use std::{fmt::{self, Error, Write}, str::from_utf8};
+use std::{
+    fmt::{self, Error, Write},
+    str::from_utf8,
+};
 
 #[derive(Debug)]
 pub struct StackBuffer<const N: usize> {
     pub buf: [u8; N],
-    pos: usize
+    pos: usize,
 }
 
 #[allow(dead_code)]
 impl<const N: usize> StackBuffer<N> {
     pub fn new() -> Self {
-        Self { buf: [0u8; N], pos: 0 }
+        Self {
+            buf: [0u8; N],
+            pos: 0,
+        }
     }
 
     pub fn as_str(&self) -> &str {
