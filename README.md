@@ -39,6 +39,8 @@
 ## ⚙️ Planned Side Features
 
 - [ ] Linux Support?
+  - For now:
+    - To play on linux use bottles and it should work out of the box and almost as good as native.
 - [X] Add MelonModLoader support
 - [X] Add Lua Plugin support
   - [X] Basic Support (1 active running plugin)
