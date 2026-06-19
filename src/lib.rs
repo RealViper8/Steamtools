@@ -20,6 +20,7 @@ pub const STEAM_URL: &str = "https://store.steampowered.com/api/appdetails?appid
 pub const STEAM_APPLIST_URL: &str =
     "https://api.steampowered.com/IStoreService/GetAppList/v1/?key=";
 
+#[cfg(target_os = "windows")]
 const MELONLOADER_URL: &str = "https://github.com/LavaGang/MelonLoader/releases/download/v0.7.1/";
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -149,6 +150,10 @@ pub fn get_games(
 
     let mut gp = path.into();
     gp.push("steamapps");
+
+    if !gp.exists() {
+        fs::create_dir(&gp).unwrap();
+    }
 
     let mut games: HashMap<u32, Game> = current_games;
 

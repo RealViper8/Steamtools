@@ -356,6 +356,11 @@ impl eframe::App for App {
                                     
                                     let mut path: PathBuf = PathBuf::new();
                                     path.push(&self.st.path);
+
+                                    #[cfg(target_os="linux")]
+                                    path.push("config/stplug-in");
+
+                                    #[cfg(target_os="windows")]
                                     path.push("config\\stplug-in");
 
                                     if !Path::new(&path).exists() {
@@ -404,11 +409,21 @@ impl eframe::App for App {
                                     self.loaded = false;
                                 }
 
+
                                 if ui.checkbox(&mut self.unlock, "Unlock").changed() {
                                     if self.unlock {
+                                        // FIXME: Later should be changed to actual path of proxy .so
+                                        #[cfg(target_os="linux")]
+                                        fs::write(format!("{}/xinput1_4.dll", self.st.path), HOOK_DLL).unwrap();
+
+                                        #[cfg(target_os="windows")]
                                         fs::write(format!("{}\\xinput1_4.dll", self.st.path), HOOK_DLL).unwrap();
                                     } else {
-                                        fs::remove_file(format!("{}\\xinput1_4.dll", self.st.path)).unwrap();
+                                        #[cfg(target_os="linux")]
+                                        fs::remove_file(format!("{}/xinput1_4.dll", self.st.path)).ok();
+
+                                        #[cfg(target_os="windows")]
+                                        fs::remove_file(format!("{}\\xinput1_4.dll", self.st.path)).ok();
                                     }
                                 }
                             });
