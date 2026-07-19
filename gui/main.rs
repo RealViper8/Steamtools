@@ -413,6 +413,7 @@ impl eframe::App for App {
                                 if ui.checkbox(&mut self.unlock, "Unlock").changed() {
                                     if self.unlock {
                                         // FIXME: Later should be changed to actual path of proxy .so
+                                        // INFO: For now only use it with wine !
                                         #[cfg(target_os="linux")]
                                         fs::write(format!("{}/xinput1_4.dll", self.st.path), HOOK_DLL).unwrap();
 
