@@ -94,7 +94,7 @@ impl App {
         if let Some(storage_ref) = cc.storage {
             storage_ref.get_string("version" ).map(|version| {
                 app.version = serde_json::from_str::<String>(&version).unwrap();
-                if VERSION != &app.version && let Some(dir) = eframe::storage_dir("steamtools") {
+                if VERSION != app.version && let Some(dir) = eframe::storage_dir("steamtools") {
                     fs::remove_dir_all(dir).unwrap();
                     fs::remove_dir_all("icons").ok();
                     #[cfg(not(target_os = "windows"))]
@@ -108,18 +108,16 @@ impl App {
                         rfd::MessageDialog::new()
                             .set_title("Info")
                             .set_buttons(rfd::MessageButtons::Ok)
-                            .set_description(&format!("Updated to version: {VERSION}\nPlease setup the path for steam again !"))
+                            .set_description(format!("Updated to version: {VERSION}\nPlease setup the path for steam again !"))
                             .show();
                     }
                     // exit(0);
-                } else {
-                    storage_ref.get_string("state" ).map(|state| {
-                        app.state = serde_json::from_str::<State>(&state).unwrap();
-                    });
+                } else if let Some(state) = storage_ref.get_string("state" ) {
+                    app.state = serde_json::from_str::<State>(&state).unwrap();
                 }
             });
 
-            storage_ref.get_string("steam").map(|s| {
+            if let Some(s) = storage_ref.get_string("steam") {
                 let mut p = PathBuf::new();
                 app.st = serde_json::from_str::<Steam>(&s).unwrap();
                 if app.st.cfg.to_string_lossy().is_empty() {
@@ -128,20 +126,21 @@ impl App {
                     p.push("stplug-in");
                     app.st.cfg = p;
                 }
-            });
+            }
 
-            storage_ref.get_string("games").map(|games| {
+
+            if let Some(games) = storage_ref.get_string("games") {
                 app.games = serde_json::from_str::<Arc<Mutex<HashMap<u32, Game>>>>(&games).unwrap();
                 app.loaded = true;
-            });
+            }
 
-            storage_ref.get_string("settings").map(|settings| {
+            if let Some(settings) = storage_ref.get_string("settings") {
                 app.settings = serde_json::from_str(&settings).unwrap();
-            });
+            }
 
-            storage_ref.get_string("unlock").map(|unlock| {
+            if let Some(unlock) = storage_ref.get_string("unlock") {
                 app.unlock = serde_json::from_str(&unlock).unwrap();
-            });
+            }
         }
 
         if app.cached_games.0.is_empty() && Path::new(STEAM_BINARY_PATH).exists() {
@@ -167,16 +166,17 @@ impl eframe::App for App {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         storage.set_string("steam", serde_json::to_string(&self.st).unwrap());
         storage.set_string("version", serde_json::to_string(VERSION).unwrap());
-        if self.state != State::Setup {
-            storage.set_string("state", serde_json::to_string(&State::MainMenu).unwrap());
-        } else {
+        if self.state == State::Setup {
             storage.set_string("state", serde_json::to_string(&self.state).unwrap());
+        } else {
+            storage.set_string("state", serde_json::to_string(&State::MainMenu).unwrap());
         }
         storage.set_string("games", serde_json::to_string(&self.games).unwrap());
         storage.set_string("settings", serde_json::to_string(&self.settings).unwrap());
         storage.set_string("unlock", serde_json::to_string(&self.unlock).unwrap());
     }
 
+    #[allow(clippy::too_many_lines)]
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         match self.state {
             State::Setup => {
@@ -188,10 +188,9 @@ impl eframe::App for App {
                     ui.vertical_centered_justified(|ui| {
                         ui.horizontal(|ui| {
                             ui.label("Select Steam Path: ");
-                            if ui.text_edit_singleline(&mut self.st.path).clicked() {
-                                if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                                    self.st.path = path.to_string_lossy().to_string();
-                                }
+                            if ui.text_edit_singleline(&mut self.st.path).clicked()
+                                && let Some(path) = rfd::FileDialog::new().pick_folder() {
+                                self.st.path = path.to_string_lossy().to_string();
                             }
                         });
 
@@ -202,20 +201,20 @@ impl eframe::App for App {
                             // pt_bf.push("config");
                             // pt_bf.push("stplug-in");
                             pt_bf.push("steam.exe");
-                            info!("Steam path set to {}", &pt_bf.display());
-                            if !pt_bf.exists() {
-                                rfd::MessageDialog::new()
-                                    .set_level(rfd::MessageLevel::Info)
-                                    .set_title("Error")
-                                    .set_description(format!("Steam is not installed in {}. Please choose a path where you installed Steam.", self.st.path))
-                                    .show();
-                            } else {
+                            info!("Steam path set to {}", pt_bf.display());
+                            if pt_bf.exists() {
                                 rfd::MessageDialog::new()
                                     .set_level(rfd::MessageLevel::Info)
                                     .set_title("Info")
                                     .set_description(format!("Path for Steamtools successfully set to {}", self.st.path))
                                     .show();
                                 self.state = State::MainMenu;
+                            } else {
+                                rfd::MessageDialog::new()
+                                    .set_level(rfd::MessageLevel::Info)
+                                    .set_title("Error")
+                                    .set_description(format!("Steam is not installed in {}. Please choose a path where you installed Steam.", self.st.path))
+                                    .show();
                             }
                         }
                     });
@@ -266,7 +265,8 @@ impl eframe::App for App {
                                     std::process::Command::new("cmd")
                                         .args(["/C", "start steam://rungameid/0"])
                                         .spawn()
-                                        .unwrap();
+                                        .unwrap()
+                                        .wait().unwrap();
                                 }
                             });
                             ui.vertical(|ui| {
@@ -275,7 +275,18 @@ impl eframe::App for App {
                                     std::process::Command::new("cmd")
                                         .args(["/C", "taskkill /f /im steam.exe"])
                                         .spawn()
-                                        .unwrap();
+                                        .unwrap()
+                                        .wait().unwrap();
+                                }
+                            });
+                            ui.vertical(|ui| {
+                                if ui.button("\u{1F5D1} Clear Cache").clicked() {
+                                    #[cfg(target_os = "windows")]
+                                    std::process::Command::new("cmd")
+                                        .args(["/C", "start steam://flushconfig"])
+                                        .spawn()
+                                        .unwrap()
+                                        .wait().unwrap();
                                 }
                             });
                         });
@@ -293,7 +304,7 @@ impl eframe::App for App {
                                     "RealViper",
                                     "https://github.com/RealViper8/Steamtools",
                                 );
-                                let text = format!("Version: {}", VERSION);
+                                let text = format!("Version: {VERSION}");
                                 let size = ui
                                     .painter()
                                     .layout(
@@ -367,15 +378,13 @@ impl eframe::App for App {
                                         fs::create_dir(&path).unwrap();
                                     }
 
-                                    match files {
-                                        Some(ref files) => {
-                                            files.iter().for_each(|file| {
-                                                path.push(&file.file_stem().unwrap());
-                                                fs::copy(file.as_path(),format!("{}.lua", &path.to_string_lossy())).unwrap();
-                                            });
-                                        },
-                                        None => ()
+                                    if let Some(ref files) = files {
+                                        for file in files {
+                                            path.push(file.file_stem().unwrap());
+                                            fs::copy(file.as_path(),format!("{}.lua", path.to_string_lossy())).unwrap();
+                                        }
                                     }
+
 
                                     if files.is_none() {
                                         return;
@@ -479,14 +488,16 @@ impl eframe::App for App {
                             let height = ui.available_height();
                             let selected_game = self.selected_game.get();
                             if selected_game != 0 {
-                                let game = self.games.lock().unwrap();
-                                let game = game.get(&selected_game).unwrap();
+                                let game = {
+                                    let games = self.games.lock().unwrap();
+                                    games.get(&selected_game).unwrap().clone()
+                                };
                                 ui.label(
                                     RichText::new(&game.details.name)
                                         .font(FontId::new(18.0, egui::FontFamily::Proportional)),
                                 );
                                 ui.add_space(5.0);
-                                ui.label(&format!("APPID: {}", game.appid));
+                                ui.label(format!("APPID: {}", game.appid));
                                 ui.add_space(8.0);
                                 ui.vertical_centered_justified(|ui| {
                                     if game.installed {
@@ -516,40 +527,39 @@ impl eframe::App for App {
                                             process::Command::new("cmd")
                                                 .args(["/C", &self.buffer])
                                                 .spawn()
-                                                .expect("Failed to uninstall");
+                                                .expect("Failed to uninstall").wait().unwrap();
                                             self.buffer.clear();
                                         }
-                                    } else {
-                                        if ui
-                                            .add_sized(
-                                                vec2(
-                                                    (width * 0.1).clamp(50.0, 70.0),
-                                                    (height * 0.1).clamp(25.0, 45.0),
-                                                ),
-                                                egui::Button::new(
-                                                    RichText::new("\u{2795} Install")
-                                                        .strong()
-                                                        .raised(),
-                                                ),
-                                            )
-                                            .on_hover_text("Prompts steam to install the game")
-                                            .clicked()
-                                        {
-                                            self.buffer.clear();
-                                            write!(
-                                                &mut self.buffer,
-                                                "start steam://install/{}",
-                                                game.appid
-                                            )
+                                    } else if ui
+                                        .add_sized(
+                                            vec2(
+                                                (width * 0.1).clamp(50.0, 70.0),
+                                                (height * 0.1).clamp(25.0, 45.0),
+                                            ),
+                                            egui::Button::new(
+                                                RichText::new("\u{2795} Install")
+                                                    .strong()
+                                                    .raised(),
+                                            ),
+                                        )
+                                        .on_hover_text("Prompts steam to install the game")
+                                        .clicked()
+                                    {
+                                        self.buffer.clear();
+                                        write!(
+                                            &mut self.buffer,
+                                            "start steam://install/{}",
+                                            game.appid
+                                        )
                                             .unwrap();
-                                            #[cfg(target_os = "windows")]
-                                            process::Command::new("cmd")
-                                                .args(["/C", &self.buffer])
-                                                .spawn()
-                                                .expect("Failed to install");
-                                            self.buffer.clear();
-                                        }
+                                        #[cfg(target_os = "windows")]
+                                        process::Command::new("cmd")
+                                            .args(["/C", &self.buffer])
+                                            .spawn()
+                                            .expect("Failed to install").wait().unwrap();
+                                        self.buffer.clear();
                                     }
+                                    
                                     ui.add_space(2.0);
                                     if ui
                                         .add_sized(
@@ -583,7 +593,7 @@ impl eframe::App for App {
                                         p.push("config");
                                         p.push("stplug-in");
                                         self.buffer.clear();
-                                        write!(&mut self.buffer, "{}.lua", &game.appid).unwrap();
+                                        write!(&mut self.buffer, "{}.lua", game.appid).unwrap();
                                         p.push(&self.buffer);
                                         self.buffer.clear();
                                         if fs::remove_file(&p).is_err() {
@@ -595,8 +605,8 @@ impl eframe::App for App {
 
                                         p.clear();
                                         p.push("icons");
-                                        p.push(format!("{}.jpg", &game.appid));
-                                        debug!("Icon deleted: {}", &p.display());
+                                        p.push(format!("{}.jpg", game.appid));
+                                        debug!("Icon deleted: {}", p.display());
 
                                         fs::remove_file(&p).ok();
                                         self.delete_request = Some(game.appid);
@@ -643,7 +653,7 @@ impl eframe::App for App {
                                         ui.allocate_exact_size(vec2(width, height), Sense::hover());
 
                                     self.buffer.clear();
-                                    write!(&mut self.buffer, "file://icons/{}.jpg", id).unwrap();
+                                    write!(&mut self.buffer, "file://icons/{id}.jpg").unwrap();
 
                                     ui.scope_builder(UiBuilder::new().max_rect(card_rect), |ui| {
                                         ui.add(
@@ -684,7 +694,9 @@ impl eframe::App for App {
                         let current_games = { games_arc.lock().unwrap().clone() };
                         GameMap::write_to(&mut sbin, &current_games).unwrap();
 
-                        let result = get_games(&s, current_games);
+                        let Ok(result) = get_games(&s, current_games) else {
+                            return;
+                        };
 
                         let mut games = games_arc.lock().unwrap();
                         *games = result;
@@ -725,13 +737,18 @@ fn main() -> eframe::Result<()> {
 
     info!("GUI: Initializing");
 
-    let options = eframe::NativeOptions {
-        centered: true,
-        viewport: egui::ViewportBuilder::default()
+    let mut viewport = egui::ViewportBuilder::default()
             .with_taskbar(true)
             .with_inner_size([650.0, 370.0])
-            .with_min_inner_size([650.0, 370.0])
-            .with_icon(eframe::icon_data::from_png_bytes(include_bytes!("../icon.png")).unwrap()),
+            .with_min_inner_size([650.0, 370.0]);
+
+    if let Ok(icon) = eframe::icon_data::from_png_bytes(include_bytes!("../icon.png")) {
+        viewport = viewport.with_icon(icon);
+    }
+
+    let options = eframe::NativeOptions {
+        centered: true,
+        viewport,
         ..Default::default()
     };
 

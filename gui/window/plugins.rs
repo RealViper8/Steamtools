@@ -138,7 +138,7 @@ impl Plugins {
         }
     }
 
-    pub fn ceditor(app: &mut App, ui: &mut egui::Ui) {
+    pub fn ceditor(app: &mut App, ui: &egui::Ui) {
         if app.plugins.ceditor {
             ui.show_viewport_immediate(
                 egui::ViewportId::from_hash_of("immediate_code_editor"),
@@ -215,7 +215,7 @@ impl Plugins {
                         ui.vertical(|ui| {
                             let syntax: Syntax = Syntax::lua();
                             CodeEditor::default()
-                                // .with_syntax(syntax)
+                                .with_syntax(syntax)
                                 .with_theme(ColorTheme::GITHUB_DARK)
                                 .desired_width(viewport_size.x)
                                 .with_rows((viewport_size.y / 14.0) as usize)
@@ -223,7 +223,7 @@ impl Plugins {
                                     ui,
                                     &mut app.plugins.list[app.plugins.selected_plugin.unwrap()]
                                         .code,
-                                    &syntax,
+                                    // &syntax,
                                 );
                         });
                     });

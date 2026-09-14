@@ -5,6 +5,22 @@ name = "steam"
 version = "0.6.6"
 edition = "2024"
 
+[lints.clippy]
+pedantic = { level = "deny", priority = -1}
+nursery = { level = "deny", priority = -1}
+
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"
+unreachable = "deny"
+unimplemented = "deny"
+unchecked_time_subtraction = "deny"
+todo = "deny"
+string_slice = "deny"
+panic_in_result_fn = "deny"
+panic = "deny"
+exit = "deny"
+as_conversions = "deny"
+
 [lib]
 name = "steamtools"
 
@@ -36,13 +52,13 @@ opt-level = 3
 
 [dependencies]
 # egui
-eframe = { version = "0.34.1", features = ["wgpu", "persistence"] }
-egui_code_editor = "0.3.2"
+eframe = { version = "0.34.2", features = ["wgpu", "persistence"] }
+egui_code_editor = "=0.2.24"
 egui_extras = { version = "0.34.1", features = ["all_loaders"] }
 # egui extra modules, tree sitter for code editor & image support
 image = { version = "0.25.9", features = ["jpeg"] }
-tree-sitter = "0.26.8"
-tree-sitter-lua = "0.5.0"
+# tree-sitter = "0.26.8"
+# tree-sitter-lua = "0.5.0"
 # json request handling
 reqwest = { version = "0.13.2", features = ["json","blocking"] }
 serde = { version = "1.0.228", features = ["derive"] }

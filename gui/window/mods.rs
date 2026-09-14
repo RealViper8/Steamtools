@@ -55,7 +55,7 @@ impl WindowPopup for ModsPopup {
                                 .0
                                 .get(&app.st.mod_id.parse::<u32>().unwrap())
                             {
-                                install_melonloader(&s.path, app.st.melon_loader);
+                                _ = install_melonloader(&s.path, app.st.melon_loader);
                             } else {
                                 rfd::MessageDialog::new()
                                     .set_title("Info")

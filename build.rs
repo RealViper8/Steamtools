@@ -1,11 +1,12 @@
 use cc::Build;
+use std::io;
 
-fn main() {
+fn main() -> io::Result<()> {
     #[cfg(windows)]
     {
         let mut res = winres::WindowsResource::new();
         res.set_icon("icon.ico");
-        res.compile().expect("Failed to embedd icon !");
+        res.compile()?;
     }
 
     Build::new()
@@ -45,5 +46,7 @@ fn main() {
         .include("lua")
         .compile("lua");
 
-    println!("cargo:rerun-if-changed=src/st.c")
+    println!("cargo:rerun-if-changed=src/st.c");
+
+    Ok(())
 }

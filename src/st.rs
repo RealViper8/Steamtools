@@ -55,12 +55,13 @@ pub fn start_file() {
 }
 
 pub fn run_lua_file<T: Into<Vec<u8>>>(filename: T) -> Option<()> {
-    let s = CString::new(filename).unwrap();
-    if unsafe { ffi::run_lua_file(s.as_ptr()) } != 0 {
-        None
-    } else {
-        Some(())
+    if let Ok(s) = CString::new(filename)
+        && (unsafe { ffi::run_lua_file(s.as_ptr()) }) != 0
+    {
+        return None;
     }
+
+    Some(())
 }
 mod macros {
     use crate::st::ffi::{LuaState, lua_pcallk, luaL_loadfilex};
@@ -93,38 +94,32 @@ unsafe extern "C" fn download(l: *mut ffi::LuaState) -> c_int {
         unsafe { lua_pushboolean(l, 0) }
         return 1;
     }
-    let url = match unsafe { CStr::from_ptr(arg_url).to_str() } {
-        Ok(s) => s,
-        Err(_) => {
-            unsafe { lua_pushboolean(l, 0) }
-            return 1;
-        }
+
+    let Ok(url) = (unsafe { CStr::from_ptr(arg_url).to_str() }) else {
+        unsafe { lua_pushboolean(l, 0) }
+        return 1;
     };
 
     let arg_out_path = lua_tostring(l, 2);
 
     let out_path: &str = if arg_out_path.is_null() {
         "out"
+    } else if let Ok(s) = unsafe { CStr::from_ptr(arg_out_path).to_str() } {
+        s
     } else {
-        match unsafe { CStr::from_ptr(arg_out_path).to_str() } {
-            Ok(s) => s,
-            Err(_) => {
-                unsafe { lua_pushboolean(l, 0) }
-                return 1;
-            }
-        }
+        unsafe { lua_pushboolean(l, 0) }
+        return 1;
     };
 
-    match reqwest::blocking::get(url) {
-        Ok(resp) => {
-            if let Ok(bytes) = resp.bytes() {
-                let mut file = File::create(out_path).unwrap();
-                file.write_all(&bytes).unwrap();
-                unsafe { lua_pushboolean(l, 1) };
-                return 1;
-            }
+    if let Ok(resp) = reqwest::blocking::get(url)
+        && let Ok(bytes) = resp.bytes()
+    {
+        if let Ok(mut file) = File::create(out_path) {
+            _ = file.write_all(&bytes);
         }
-        Err(_) => {}
+
+        unsafe { lua_pushboolean(l, 1) };
+        return 1;
     }
 
     unsafe { lua_pushboolean(l, 0) };
