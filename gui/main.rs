@@ -133,7 +133,6 @@ impl App {
                 }
             }
 
-
             if let Some(games) = storage_ref.get_string("games") {
                 app.games = serde_json::from_str::<Arc<Mutex<HashMap<u32, Game>>>>(&games).unwrap();
                 app.loaded = true;
@@ -250,7 +249,6 @@ impl eframe::App for App {
                         ui.label(RichText::new("Steamtools").font(FontId::proportional(20.0)));
 
                         if ui.button("Update").clicked() {
-
                             let status = self_update::backends::github::Update::configure()
                                 .repo_owner("RealViper8")
                                 .repo_name("Steamtools")
@@ -258,13 +256,17 @@ impl eframe::App for App {
                                 .show_download_progress(false)
                                 .no_confirm(true)
                                 .current_version(cargo_crate_version!())
-                                .build().unwrap()
+                                .build()
+                                .unwrap()
                                 .update();
 
                             MessageDialog::new()
                                 .set_level(rfd::MessageLevel::Info)
                                 .set_title("Updated")
-                                .set_description(format!("Successfully updated to {}", status.unwrap()))
+                                .set_description(format!(
+                                    "Successfully updated to {}",
+                                    status.unwrap()
+                                ))
                                 .set_buttons(rfd::MessageButtons::Ok)
                                 .show();
 
@@ -293,7 +295,8 @@ impl eframe::App for App {
                                         .args(["/C", "start steam://rungameid/0"])
                                         .spawn()
                                         .unwrap()
-                                        .wait().unwrap();
+                                        .wait()
+                                        .unwrap();
                                 }
                             });
                             ui.vertical(|ui| {
@@ -303,7 +306,8 @@ impl eframe::App for App {
                                         .args(["/C", "taskkill /f /im steam.exe"])
                                         .spawn()
                                         .unwrap()
-                                        .wait().unwrap();
+                                        .wait()
+                                        .unwrap();
                                 }
                             });
                             ui.vertical(|ui| {
@@ -313,7 +317,8 @@ impl eframe::App for App {
                                         .args(["/C", "start steam://flushconfig"])
                                         .spawn()
                                         .unwrap()
-                                        .wait().unwrap();
+                                        .wait()
+                                        .unwrap();
                                 }
                             });
                         });
@@ -383,23 +388,17 @@ impl eframe::App for App {
                                     self.loaded = false;
                                 }
 
-                                if ui.button("Load lua").on_hover_text("Loads a .lua file for game/dlcs").clicked() {
+                                if ui.button("\u{21BA} Load").on_hover_text("Loads a .lua/.manifest files for game/dlcs").clicked() {
                                     // Lua files
                                     let files =
                                         rfd::FileDialog::default()
-                                            .add_filter("lua", &["lua"])
+                                            .add_filter("lua | manifest", &["lua", "manifest"])
                                             .set_title("Steamtools Lua")
                                             .pick_files();
 
-                                    
                                     let mut path: PathBuf = PathBuf::new();
                                     path.push(&self.st.path);
 
-                                    #[cfg(target_os="linux")]
-                                    path.push("config/stplug-in");
-
-                                    #[cfg(target_os="windows")]
-                                    path.push("config\\stplug-in");
 
                                     if !Path::new(&path).exists() {
                                         fs::create_dir(&path).unwrap();
@@ -407,8 +406,26 @@ impl eframe::App for App {
 
                                     if let Some(ref files) = files {
                                         for file in files {
+                                            if file.extension().is_some_and(|x| x == "manifest") {
+                                                path.push("depotcache");
+                                                path.push(file.file_stem().unwrap());
+                                                fs::copy(file.as_path(),format!("{}.manifest", path.to_string_lossy())).unwrap();
+                                                path.pop();
+                                                path.pop();
+                                                continue;
+                                            }
+
+                                            #[cfg(target_os="linux")]
+                                            path.push("config/stplug-in");
+
+                                            #[cfg(target_os="windows")]
+                                            path.push("config\\stplug-in");
+
                                             path.push(file.file_stem().unwrap());
                                             fs::copy(file.as_path(),format!("{}.lua", path.to_string_lossy())).unwrap();
+                                            path.pop();
+                                            path.pop();
+                                            path.pop();
                                         }
                                     }
 
@@ -553,7 +570,9 @@ impl eframe::App for App {
                                             process::Command::new("cmd")
                                                 .args(["/C", &self.buffer])
                                                 .spawn()
-                                                .expect("Failed to uninstall").wait().unwrap();
+                                                .expect("Failed to uninstall")
+                                                .wait()
+                                                .unwrap();
                                             self.buffer.clear();
                                         }
                                     } else if ui
@@ -563,9 +582,7 @@ impl eframe::App for App {
                                                 (height * 0.1).clamp(25.0, 45.0),
                                             ),
                                             egui::Button::new(
-                                                RichText::new("\u{2795} Install")
-                                                    .strong()
-                                                    .raised(),
+                                                RichText::new("\u{2795} Install").strong().raised(),
                                             ),
                                         )
                                         .on_hover_text("Prompts steam to install the game")
@@ -577,15 +594,17 @@ impl eframe::App for App {
                                             "start steam://install/{}",
                                             game.appid
                                         )
-                                            .unwrap();
+                                        .unwrap();
                                         #[cfg(target_os = "windows")]
                                         process::Command::new("cmd")
                                             .args(["/C", &self.buffer])
                                             .spawn()
-                                            .expect("Failed to install").wait().unwrap();
+                                            .expect("Failed to install")
+                                            .wait()
+                                            .unwrap();
                                         self.buffer.clear();
                                     }
-                                    
+
                                     ui.add_space(2.0);
                                     if ui
                                         .add_sized(
@@ -764,9 +783,9 @@ fn main() -> eframe::Result<()> {
     info!("GUI: Initializing");
 
     let mut viewport = egui::ViewportBuilder::default()
-            .with_taskbar(true)
-            .with_inner_size([650.0, 370.0])
-            .with_min_inner_size([650.0, 370.0]);
+        .with_taskbar(true)
+        .with_inner_size([650.0, 370.0])
+        .with_min_inner_size([650.0, 370.0]);
 
     if let Ok(icon) = eframe::icon_data::from_png_bytes(include_bytes!("../icon.png")) {
         viewport = viewport.with_icon(icon);
