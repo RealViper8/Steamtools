@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use rfd::MessageDialog;
+use self_update::cargo_crate_version;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -92,30 +94,33 @@ impl App {
         };
 
         if let Some(storage_ref) = cc.storage {
-            storage_ref.get_string("version" ).map(|version| {
-                app.version = serde_json::from_str::<String>(&version).unwrap();
-                if VERSION != app.version && let Some(dir) = eframe::storage_dir("steamtools") {
-                    fs::remove_dir_all(dir).unwrap();
-                    fs::remove_dir_all("icons").ok();
-                    #[cfg(not(target_os = "windows"))]
-                    rfd::MessageDialog::new()
-                        .set_title("Info")
-                        .set_buttons(rfd::MessageButtons::Ok)
-                        .set_description("Restart Steamtools !")
-                        .show();
-                    #[cfg(target_os = "windows")] {
-                        app.state = State::Setup;
-                        rfd::MessageDialog::new()
-                            .set_title("Info")
-                            .set_buttons(rfd::MessageButtons::Ok)
-                            .set_description(format!("Updated to version: {VERSION}\nPlease setup the path for steam again !"))
-                            .show();
-                    }
-                    // exit(0);
-                } else if let Some(state) = storage_ref.get_string("state" ) {
-                    app.state = serde_json::from_str::<State>(&state).unwrap();
-                }
-            });
+            // storage_ref.get_string("version" ).map(|version| {
+            //     app.version = serde_json::from_str::<String>(&version).unwrap();
+            //     if VERSION != app.version && let Some(dir) = eframe::storage_dir("steamtools") {
+            //         fs::remove_dir_all(dir).unwrap();
+            //         fs::remove_dir_all("icons").ok();
+            //         #[cfg(not(target_os = "windows"))]
+            //         rfd::MessageDialog::new()
+            //             .set_title("Info")
+            //             .set_buttons(rfd::MessageButtons::Ok)
+            //             .set_description("Restart Steamtools !")
+            //             .show();
+            //         #[cfg(target_os = "windows")] {
+            //             app.state = State::Setup;
+            //             rfd::MessageDialog::new()
+            //                 .set_title("Info")
+            //                 .set_buttons(rfd::MessageButtons::Ok)
+            //                 .set_description(format!("Updated to version: {VERSION}\nPlease setup the path for steam again !"))
+            //                 .show();
+            //         }
+            //         // exit(0);
+            //     } else if let Some(state) = storage_ref.get_string("state" ) {
+            //         app.state = serde_json::from_str::<State>(&state).unwrap();
+            //     }
+            // });
+            if let Some(state) = storage_ref.get_string("state") {
+                app.state = serde_json::from_str::<State>(&state).unwrap();
+            }
 
             if let Some(s) = storage_ref.get_string("steam") {
                 let mut p = PathBuf::new();
@@ -243,6 +248,28 @@ impl eframe::App for App {
                         });
 
                         ui.label(RichText::new("Steamtools").font(FontId::proportional(20.0)));
+
+                        if ui.button("Update").clicked() {
+
+                            let status = self_update::backends::github::Update::configure()
+                                .repo_owner("RealViper8")
+                                .repo_name("Steamtools")
+                                .bin_name("stcli")
+                                .show_download_progress(false)
+                                .no_confirm(true)
+                                .current_version(cargo_crate_version!())
+                                .build().unwrap()
+                                .update();
+
+                            MessageDialog::new()
+                                .set_level(rfd::MessageLevel::Info)
+                                .set_title("Updated")
+                                .set_description(format!("Successfully updated to {}", status.unwrap()))
+                                .set_buttons(rfd::MessageButtons::Ok)
+                                .show();
+
+                            self_update::restart::restart();
+                        }
 
                         ui.checkbox(
                             &mut self.settings.mod_experimental,
@@ -473,7 +500,6 @@ impl eframe::App for App {
                                 }
                             }
                         });
-                        
                         ui.add_space(4.0);
                     });
                 });
