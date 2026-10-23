@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use std::fs::File;
 use std::path::Path;
-use std::process::Command;
 use std::{
     fs,
     path::PathBuf,
@@ -516,7 +515,7 @@ impl eframe::App for App {
 
                                 #[cfg(not(target_os="windows"))]
                                 if !self.luatool {
-                                    Command::new("xdg-terminal-exec")
+                                    std::process::Command::new("xdg-terminal-exec")
                                         .arg("sh")
                                         .arg("-c")
                                         .arg("curl -fsSL https://raw.githubusercontent.com/swwayps/luatools-moon/main/install.sh | bash")
@@ -630,7 +629,7 @@ impl eframe::App for App {
                                             )
                                             .unwrap();
                                             #[cfg(target_os = "windows")]
-                                            process::Command::new("cmd")
+                                            std::process::Command::new("cmd")
                                                 .args(["/C", &self.buffer])
                                                 .spawn()
                                                 .expect("Failed to uninstall")
@@ -659,7 +658,7 @@ impl eframe::App for App {
                                         )
                                         .unwrap();
                                         #[cfg(target_os = "windows")]
-                                        process::Command::new("cmd")
+                                        std::process::Command::new("cmd")
                                             .args(["/C", &self.buffer])
                                             .spawn()
                                             .expect("Failed to install")
