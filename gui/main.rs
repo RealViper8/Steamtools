@@ -125,6 +125,7 @@ impl App {
                 app.state = serde_json::from_str::<State>(&state).unwrap();
             }
 
+            #[cfg(not(target_os = "windows"))]
             if let Some(luatool) = storage_ref.get_string("luatool") {
                 app.luatool = serde_json::from_str::<bool>(&luatool).unwrap()
             }
