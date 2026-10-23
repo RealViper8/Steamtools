@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use std::fs::File;
 use std::path::Path;
-use std::process;
+use std::process::Command;
 use std::{
     fs,
     path::PathBuf,
@@ -41,6 +41,7 @@ enum State {
     Settings,
 }
 
+#[cfg(target_os = "windows")]
 const HOOK_DLL: &[u8] = include_bytes!("../deps/xinput1_4.dll");
 const STEAM_BINARY_PATH: &str = "steam.bin";
 
@@ -63,6 +64,8 @@ struct App {
     filter: Filter,
     selected_game: Cell<u32>,
     delete_request: Option<u32>,
+    #[cfg(not(target_os = "windows"))]
+    luatool: bool,
     // settings: Settings,
 }
 
@@ -122,6 +125,10 @@ impl App {
                 app.state = serde_json::from_str::<State>(&state).unwrap();
             }
 
+            if let Some(luatool) = storage_ref.get_string("luatool") {
+                app.luatool = serde_json::from_str::<bool>(&luatool).unwrap()
+            }
+
             if let Some(s) = storage_ref.get_string("steam") {
                 let mut p = PathBuf::new();
                 app.st = serde_json::from_str::<Steam>(&s).unwrap();
@@ -178,12 +185,26 @@ impl eframe::App for App {
         storage.set_string("games", serde_json::to_string(&self.games).unwrap());
         storage.set_string("settings", serde_json::to_string(&self.settings).unwrap());
         storage.set_string("unlock", serde_json::to_string(&self.unlock).unwrap());
+        #[cfg(not(target_os = "windows"))]
+        storage.set_string("luatool", serde_json::to_string(&self.luatool).unwrap())
     }
 
     #[allow(clippy::too_many_lines)]
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         match self.state {
             State::Setup => {
+                #[cfg(target_os = "linux")]
+                {
+                    let pt_bf = PathBuf::from(format!(
+                        "/home/{}/.steam/steam",
+                        whoami::username().unwrap()
+                    ));
+                    if pt_bf.exists() {
+                        self.state = State::MainMenu;
+                        return;
+                    }
+                }
+
                 egui::CentralPanel::default().show_inside(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.label(RichText::new("Setup").font(FontId::proportional(20.0)));
@@ -248,6 +269,12 @@ impl eframe::App for App {
 
                         ui.label(RichText::new("Steamtools").font(FontId::proportional(20.0)));
 
+                        #[cfg(target_os = "linux")]
+                        if ui.button("Install LuaTool").clicked() {
+                            self.luatool = false;
+                            self.state = State::MainMenu;
+                        }
+
                         if ui.button("Update").clicked() {
                             let status = self_update::backends::github::Update::configure()
                                 .repo_owner("RealViper8")
@@ -270,7 +297,7 @@ impl eframe::App for App {
                                 .set_buttons(rfd::MessageButtons::Ok)
                                 .show();
 
-                            self_update::restart::restart();
+                            let _ = self_update::restart::restart();
                         }
 
                         ui.checkbox(
@@ -297,6 +324,14 @@ impl eframe::App for App {
                                         .unwrap()
                                         .wait()
                                         .unwrap();
+
+                                    #[cfg(target_os = "linux")]
+                                    std::process::Command::new("xdg-open")
+                                        .arg("steam://rungameid/0")
+                                        .spawn()
+                                        .unwrap()
+                                        .wait()
+                                        .unwrap();
                                 }
                             });
                             ui.vertical(|ui| {
@@ -308,6 +343,14 @@ impl eframe::App for App {
                                         .unwrap()
                                         .wait()
                                         .unwrap();
+
+                                    #[cfg(target_os = "linux")]
+                                    std::process::Command::new("pkill")
+                                        .args(["-x", "steam"])
+                                        .spawn()
+                                        .unwrap()
+                                        .wait()
+                                        .unwrap();
                                 }
                             });
                             ui.vertical(|ui| {
@@ -315,6 +358,14 @@ impl eframe::App for App {
                                     #[cfg(target_os = "windows")]
                                     std::process::Command::new("cmd")
                                         .args(["/C", "start steam://flushconfig"])
+                                        .spawn()
+                                        .unwrap()
+                                        .wait()
+                                        .unwrap();
+
+                                    #[cfg(target_os = "linux")]
+                                    std::process::Command::new("xdg-open")
+                                        .arg("steam://flushconfig")
                                         .spawn()
                                         .unwrap()
                                         .wait()
@@ -462,7 +513,18 @@ impl eframe::App for App {
                                     self.loaded = false;
                                 }
 
+                                #[cfg(not(target_os="windows"))]
+                                if !self.luatool {
+                                    Command::new("xdg-terminal-exec")
+                                        .arg("sh")
+                                        .arg("-c")
+                                        .arg("curl -fsSL https://raw.githubusercontent.com/swwayps/luatools-moon/main/install.sh | bash")
+                                        .spawn()
+                                        .expect("Failed to launch default terminal emulator");
+                                    self.luatool = true;
+                                }
 
+                                #[cfg(target_os="windows")]
                                 if ui.checkbox(&mut self.unlock, "Unlock").changed() {
                                     if self.unlock {
                                         // FIXME: Later should be changed to actual path of proxy .so

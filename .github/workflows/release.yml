@@ -23,6 +23,38 @@ jobs:
             token: ${{ github.token }}
             generate_release_notes: true
 
+  linux-build:
+    name: Linux Build (Debug, Release)
+    runs-on: ubuntu-latest
+    needs: release
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust target
+        run: rustup target add x86_64-unknown-linux-gnu
+
+      - name: Build Release (x86_64)
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Build Debug (x86_64)
+        run: cargo build --target x86_64-unknown-linux-gnu --bin stcli
+
+      - name: Rename Linux binaries
+        run: |
+          mv target/x86_64-unknown-linux-gnu/release/stcli \
+             stcli-x86_64-unknown-linux-gnu
+          mv target/x86_64-unknown-linux-gnu/debug/stcli \
+             stcli-x86_64-unknown-linux-gnu_debug
+
+      - name: Upload Linux Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            stcli-x86_64-unknown-linux-gnu
+            stcli-x86_64-unknown-linux-gnu_debug
+
   windows-build:
     name: Windows Build (Debug, Release)
     runs-on: windows-latest
