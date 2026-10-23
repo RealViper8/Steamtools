@@ -200,6 +200,7 @@ impl eframe::App for App {
                         whoami::username().unwrap()
                     ));
                     if pt_bf.exists() {
+                        self.st.path = pt_bf.to_string_lossy().to_string();
                         self.state = State::MainMenu;
                         return;
                     }
@@ -382,23 +383,16 @@ impl eframe::App for App {
                     .show_inside(ui, |ui| {
                         ui.centered_and_justified(|ui| {
                             ui.horizontal(|ui| {
+                                use std::io::Write;
                                 ui.label("Made by");
                                 ui.hyperlink_to(
                                     "RealViper",
                                     "https://github.com/RealViper8/Steamtools",
                                 );
-                                let text = format!("Version: {VERSION}");
-                                let size = ui
-                                    .painter()
-                                    .layout(
-                                        text.clone(),
-                                        FontId::default(),
-                                        Color32::BLACK,
-                                        f32::INFINITY,
-                                    )
-                                    .rect
-                                    .width();
-                                ui.add_space(ui.available_width() - size);
+                                let mut text_buf = [0u8; 64];
+                                write!(&mut text_buf[..], "Version: {VERSION}").unwrap();
+                                let text = std::str::from_utf8(&text_buf).unwrap();
+                                ui.add_space(ui.available_width() - text_buf.len() as f32 * 1.7);
                                 ui.label(text);
                             });
                         });
@@ -657,6 +651,13 @@ impl eframe::App for App {
                                             game.appid
                                         )
                                         .unwrap();
+
+                                        #[cfg(target_os = "linux")]
+                                        std::process::Command::new("xdg-terminal-exec")
+                                            .arg("sh")
+                                            .arg(&self.buffer)
+                                            .spawn()
+                                            .expect("Failed to launch default terminal emulator");
                                         #[cfg(target_os = "windows")]
                                         std::process::Command::new("cmd")
                                             .args(["/C", &self.buffer])
@@ -794,6 +795,7 @@ impl eframe::App for App {
                 if !self.loaded {
                     ui.request_repaint();
                     let s = self.st.path.clone();
+                    dbg!(&s);
                     let games_arc = self.games.clone();
                     thread::spawn(move || {
                         let mut sbin = fs::File::create(STEAM_BINARY_PATH).unwrap();
