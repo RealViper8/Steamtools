@@ -2,7 +2,7 @@
 authors = ["Gabriel"]
 license = "MIT"
 name = "steam"
-version = "0.6.8"
+version = "0.6.9"
 edition = "2024"
 
 [lints.clippy]
