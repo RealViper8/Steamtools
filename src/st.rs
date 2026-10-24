@@ -153,20 +153,5 @@ mod tests {
 
         let s = CString::new("test.lua").unwrap();
         unsafe { run_lua_file(s.as_ptr()) };
-        // let l = unsafe { luaL_newstate() };
-        // let t = CString::new("Ui").unwrap();
-        // unsafe { luaL_openlibs(l) };
-
-        // if unsafe { lua_loadfile(l, s.as_ptr()) } != 0 {
-        //     let err = unsafe { CStr::from_ptr(lua_tostring(l, -1)) };
-        //     eprintln!("Error loading Lua file: {:?}", err);
-        //     return;
-        // }
-
-        // lua_pcall(l, 0, 0, 0);
-        // unsafe { lua_getglobal(l, t.as_ptr()) };
-        // lua_pcall(l, 0, 0, 0);
-
-        // unsafe { lua_close(l) };
     }
 }

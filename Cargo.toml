@@ -5,6 +5,10 @@ name = "steam"
 version = "0.6.9"
 edition = "2024"
 
+[workspace]
+resolver = "3"
+members = ["generator"]
+
 [lints.clippy]
 pedantic = { level = "deny", priority = -1}
 nursery = { level = "deny", priority = -1}

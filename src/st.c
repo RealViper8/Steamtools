@@ -23,6 +23,7 @@ void set_flag(int val) { stop_flag = val; }
 int get_flag() { return stop_flag; }
 
 void hook(lua_State *L, lua_Debug *ar) {
+  (void)ar;
   if (stop_flag == 1) {
     luaL_error(L, "Execution stopped by user");
   }
@@ -46,7 +47,7 @@ int run_lua_file(char *filename) {
 }
 
 void load_lua_file(char *filename) {
-  int status, result, i;
+  int status;
   lua_State *L = luaL_newstate();
   luaL_openlibs(L);
 
