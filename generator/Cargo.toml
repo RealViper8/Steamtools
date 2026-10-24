@@ -1,0 +1,9 @@
+[package]
+name = "generator"
+version = "0.1.2"
+edition = "2024"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+steam-vdf-parser = "0.1.2"
+toml = "1.1.8"

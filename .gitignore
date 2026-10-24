@@ -10,3 +10,6 @@ steam.bin
 /benches
 .env
 steamtools.log
+*.lua
+conf.toml
+docs
