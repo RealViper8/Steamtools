@@ -12,3 +12,4 @@ steam.bin
 steamtools.log
 *.lua
 conf.toml
+docs
