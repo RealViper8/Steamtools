@@ -1,9 +1,12 @@
+use serde_json;
 use std::{
     collections::HashMap,
     io::{Write, stdin, stdout},
     path::{Path, PathBuf},
+    process::exit,
 };
 
+use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use steam_vdf_parser::parse_text;
@@ -19,10 +22,23 @@ struct DecryptionKey {
     content: HashMap<u64, String>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct LuaGenerator {
     id: u64,
     source: String,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about)]
+struct Args {
+    #[arg(short, long)]
+    steam_path: Option<String>,
+
+    #[arg(short, long)]
+    appid: Option<u64>,
+
+    #[arg(short, long, default_value_t = false)]
+    get_keys: bool,
 }
 
 impl LuaGenerator {
@@ -62,34 +78,57 @@ fn read(path: &str) -> Option<Config> {
     Some(conf)
 }
 
+fn get_decryption_keys_cli(keys: HashMap<u64, String>) {
+    if let Ok(json) = serde_json::to_string(&keys) {
+        println!("{}", json);
+    } else {
+        exit(1);
+    }
+}
+
 fn main() {
-    println!("-- Lua Generator V{VERSION} --");
+    let args = Args::parse();
+    let cli = args.steam_path.is_some() && args.appid.is_some();
+
+    if !cli {
+        println!("-- Lua Generator V{VERSION} --");
+    }
+
     let mut config = Config::default();
 
     let mut pb = PathBuf::new();
 
-    if !Path::new("conf.toml").exists() {
-        let mut path = String::new();
-        write!(stdout(), "Steam path: ").unwrap();
-        stdout().flush().unwrap();
+    if !cli {
+        if !Path::new("conf.toml").exists() {
+            let mut path = String::new();
+            write!(stdout(), "Steam path: ").unwrap();
+            stdout().flush().unwrap();
 
-        stdin().read_line(&mut path).unwrap();
-        pb.push(path.trim_end());
-        pb.push("config");
+            stdin().read_line(&mut path).unwrap();
+            pb.push(path.trim_end());
+            pb.push("config");
 
-        if !pb.exists() {
-            eprintln!("steamepath '{}/config' doesnt exist.", path.trim());
-            return;
+            if !pb.exists() {
+                eprintln!("steamepath '{}/config' doesnt exist.", path.trim());
+                return;
+            }
+
+            config.path = pb.display().to_string();
+            save(&config, SAVE_PATH);
+        } else {
+            config = read("conf.toml").unwrap();
         }
-
-        config.path = pb.display().to_string();
-        save(&config, SAVE_PATH);
-    } else {
-        config = read("conf.toml").unwrap();
     }
 
-    pb.push(&config.path);
-    pb.push("config.vdf");
+    if cli {
+        pb.push(args.steam_path.unwrap());
+        pb.push("config");
+        pb.push("config.vdf");
+    } else {
+        pb.push(&config.path);
+        pb.push("config.vdf");
+    }
+
     let input = fs::read_to_string(&pb).unwrap();
     pb.pop();
     let vdf = parse_text(&input).unwrap();
@@ -117,12 +156,25 @@ fn main() {
     }
 
     config.keys.content = depots_map;
-    save(&config, SAVE_PATH);
+    if args.get_keys {
+        get_decryption_keys_cli(config.keys.content);
+        return;
+    }
 
-    stdout().write(b"Appid: ").unwrap();
-    stdout().flush().unwrap();
+    if !cli {
+        save(&config, SAVE_PATH);
+    }
+
     let mut buf = String::new();
-    stdin().read_line(&mut buf).unwrap();
+
+    if cli {
+        buf = args.appid.unwrap().to_string();
+    } else {
+        stdout().write(b"Appid: ").unwrap();
+        stdout().flush().unwrap();
+        stdin().read_line(&mut buf).unwrap();
+    }
+
     let id = if let Ok(id) = buf.trim().parse::<u64>() {
         id
     } else {
@@ -156,5 +208,7 @@ fn main() {
 
     luagen.save();
 
-    println!("Successfully created '{id}.lua'.\nHappy Sharing/Gaming");
+    if !cli {
+        println!("Successfully created '{id}.lua'.\nHappy Sharing/Gaming");
+    }
 }
