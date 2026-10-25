@@ -3,4 +3,4 @@ Used to generate lua files, Manifest files from own Games.
 
 ### TODO:
 - [X] Lua Generator
-- [ ] Manifest Generator
+~~- [ ] Manifest Generator~~
