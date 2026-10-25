@@ -58,9 +58,12 @@ SOL: GYepZXvMAyQ8y54HuWx8QR3yBBg9EFEqn7dDJo93GbTM (SOL Network)
 ## Prerequisites
 
 - VC_Runtime: [x64](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-- Opengl Drivers:
+- OpenGL Drivers:
   - [AMD](https://www.amd.com/en/support/download/drivers.html)
   - [NVIDIA](https://www.nvidia.com/de-de/drivers/)
+
+- Linux:
+  xdg-terminal-exec
 
 **Language:** Rust 🦀
 **Status:** In active development 🚀
