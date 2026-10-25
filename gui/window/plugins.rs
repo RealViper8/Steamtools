@@ -107,10 +107,13 @@ impl WindowPopup for Plugins {
                                     if ui.button("Start").clicked() {
                                         // Resetting the static flag to 0 (internally)
                                         start_file();
-                                        let pl = plugin.name.clone();
+                                        let plugin_name = {
+                                            let pl_guard = plugin.name.lock().unwrap();
+                                            pl_guard.clone()
+                                        };
+
                                         thread::spawn(move || {
-                                            let pl_guard = pl.lock().unwrap();
-                                            run_lua_file(format!("./plugins/{}.lua", *pl_guard));
+                                            run_lua_file(format!("./plugins/{}.lua", plugin_name));
                                         });
                                     }
 

@@ -98,30 +98,6 @@ impl App {
         };
 
         if let Some(storage_ref) = cc.storage {
-            // storage_ref.get_string("version" ).map(|version| {
-            //     app.version = serde_json::from_str::<String>(&version).unwrap();
-            //     if VERSION != app.version && let Some(dir) = eframe::storage_dir("steamtools") {
-            //         fs::remove_dir_all(dir).unwrap();
-            //         fs::remove_dir_all("icons").ok();
-            //         #[cfg(not(target_os = "windows"))]
-            //         rfd::MessageDialog::new()
-            //             .set_title("Info")
-            //             .set_buttons(rfd::MessageButtons::Ok)
-            //             .set_description("Restart Steamtools !")
-            //             .show();
-            //         #[cfg(target_os = "windows")] {
-            //             app.state = State::Setup;
-            //             rfd::MessageDialog::new()
-            //                 .set_title("Info")
-            //                 .set_buttons(rfd::MessageButtons::Ok)
-            //                 .set_description(format!("Updated to version: {VERSION}\nPlease setup the path for steam again !"))
-            //                 .show();
-            //         }
-            //         // exit(0);
-            //     } else if let Some(state) = storage_ref.get_string("state" ) {
-            //         app.state = serde_json::from_str::<State>(&state).unwrap();
-            //     }
-            // });
             if let Some(state) = storage_ref.get_string("state") {
                 app.state = serde_json::from_str::<State>(&state).unwrap();
             }
@@ -481,31 +457,6 @@ impl eframe::App for App {
                                         return;
                                     }
 
-                                    // for file in files.unwrap() {
-                                    //     let games_lock = self.games.clone();
-                                    //         match file.file_stem().unwrap().to_str().unwrap().parse::<u32>().ok() {
-                                    //             Some(appid) => {
-                                    //                 let appid = appid;
-                                    //                 thread::spawn(move || {
-                                    //                     let url = format!("{}{}", STEAM_URL, appid);
-                                    //                     println!("[FETCHING] {}", appid);
-                                    //                     dbg!(&url);
-                                    //                     let resp: HashMap<String, GameDetails> = match blocking::get(url).ok().unwrap().json() {
-                                    //                         Ok(r) => {
-                                    //                             r
-                                    //                         },
-                                    //                         Err(e) => {
-                                    //                             eprintln!("[FETCHING ERROR] {}", e);
-                                    //                             return
-                                    //                         }
-                                    //                     };
-
-
-                                    //                 });
-                                    //             },
-                                    //             None => println!("error: failed to read .lua make sure the filename is the appid !"),
-                                    //         };
-                                    //     }
                                     self.loaded = false;
                                 }
 
