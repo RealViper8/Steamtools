@@ -14,9 +14,7 @@ use std::{
     thread,
 };
 
-use eframe::egui::{
-    self, Color32, FontData, FontDefinitions, FontId, RichText, Sense, UiBuilder, vec2,
-};
+use eframe::egui::{self, FontData, FontDefinitions, FontId, RichText, Sense, UiBuilder, vec2};
 use egui_extras::install_image_loaders;
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
@@ -42,6 +40,10 @@ enum State {
 
 #[cfg(target_os = "windows")]
 const HOOK_DLL: &[u8] = include_bytes!("../deps/xinput1_4.dll");
+#[cfg(target_os = "windows")]
+const DWMAPI_DLL: &[u8] = include_bytes!("../deps/dwmapi.dll");
+#[cfg(target_os = "windows")]
+const OPEN_STEAM_TOOL_DLL: &[u8] = include_bytes!("../deps/OpenSteamTool.dll");
 const STEAM_BINARY_PATH: &str = "steam.bin";
 
 #[derive(Default)]
@@ -528,6 +530,12 @@ impl eframe::App for App {
 
                                         #[cfg(target_os="windows")]
                                         fs::write(format!("{}\\xinput1_4.dll", self.st.path), HOOK_DLL).unwrap();
+
+                                        #[cfg(target_os="windows")]
+                                        fs::write(format!("{}\\OpenSteamTool.dll", self.st.path), OPEN_STEAM_TOOL_DLL).unwrap();
+
+                                        #[cfg(target_os="windows")]
+                                        fs::write(format!("{}\\dwmapi.dll", self.st.path), DWMAPI_DLL).unwrap();
                                     } else {
                                         #[cfg(target_os="linux")]
                                         fs::remove_file(format!("{}/xinput1_4.dll", self.st.path)).ok();

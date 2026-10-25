@@ -172,6 +172,10 @@ pub fn get_games(
     p.push("config");
     p.push("stplug-in");
 
+    if !Path::new(&p).exists() {
+        fs::create_dir(&p)?;
+    }
+
     let mut gp = path.into();
     gp.push("steamapps");
 
