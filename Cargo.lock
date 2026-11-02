@@ -4656,9 +4656,9 @@ checksum = "2ab42ca02749e120097e328d91d415325bdf43b1c72c4c8badf37375fe40a813"
 
 [[package]]
 name = "self_update"
-version = "1.3.2"
+version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc2431f53a0ce632e7b6766ecda7612bcc20275439b64332f2ca70070ae544d9"
+checksum = "db894dc81dc2d26b41c4966e3e67ab2e0c21289912edd262012a07da9e4e0201"
 dependencies = [
  "flate2",
  "http",
@@ -4978,7 +4978,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "steam"
-version = "0.6.9"
+version = "0.7.0"
 dependencies = [
  "cc",
  "criterion",
